@@ -165,6 +165,8 @@ class TableUI {
         `;
         this.seatsContainer.appendChild(seatDiv);
         continue;
+      }
+
       // Siège occupé
       seatDiv.dataset.playerId = p.id;
       const isCurrentTurn = p.isCurrent;
