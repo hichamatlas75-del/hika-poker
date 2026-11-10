@@ -376,7 +376,7 @@ class TableUI {
   }
 
   // Animation de Timer circulaire avec avertissement audio
-  startTurnTimer(uiSeatIdx, durationMs = 15000, onTimeout = null) {
+  startTurnTimer(uiSeatIdx, durationMs = 15000, onTimeout = null, totalDuration = null) {
     this.stopTurnTimer();
     this.currentTimerSeat = uiSeatIdx;
 
@@ -391,30 +391,36 @@ class TableUI {
     const startTime = Date.now();
     let lastSecondTicked = -1;
 
+    this.totalTurnDuration = totalDuration || durationMs;
     this.timerDuration = durationMs;
     this.timerStartTime = startTime;
     this.timerOnTimeout = onTimeout;
     this.isTimerPaused = false;
     this.timerRemaining = durationMs;
 
-    this.timerInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, durationMs - elapsed);
-      this.timerRemaining = remaining;
-      const ratio = remaining / durationMs;
+    const updateVisual = (rem) => {
+      const ratio = Math.max(0, rem / this.totalTurnDuration);
       const offset = totalCircumference * (1 - ratio);
-
       timerBar.style.strokeDashoffset = offset;
 
-      // Moins de 3 secondes restantes : mode urgent UNIQUEMENT pour le joueur humain (siège 0)
-      if (uiSeatIdx === 0 && remaining <= 3500) {
+      // Moins de 3.5 secondes restantes : mode urgent UNIQUEMENT pour le joueur humain (siège 0)
+      if (uiSeatIdx === 0 && rem <= 3500) {
         timerBar.classList.add('urgent');
-        const sec = Math.ceil(remaining / 1000);
+        const sec = Math.ceil(rem / 1000);
         if (sec !== lastSecondTicked && sec > 0) {
           lastSecondTicked = sec;
           if (window.soundFX) window.soundFX.playTimerTick(true);
         }
       }
+    };
+
+    updateVisual(durationMs);
+
+    this.timerInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, durationMs - elapsed);
+      this.timerRemaining = remaining;
+      updateVisual(remaining);
 
       if (remaining <= 0) {
         this.stopTurnTimer();
@@ -428,6 +434,8 @@ class TableUI {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
       this.isTimerPaused = true;
+      const elapsed = Date.now() - (this.timerStartTime || Date.now());
+      this.timerRemaining = Math.max(0, (this.timerDuration || 15000) - elapsed);
     }
   }
 
@@ -437,7 +445,8 @@ class TableUI {
       const seat = this.currentTimerSeat;
       const rem = this.timerRemaining;
       const cb = this.timerOnTimeout;
-      this.startTurnTimer(seat, rem, cb);
+      const total = this.totalTurnDuration || rem;
+      this.startTurnTimer(seat, rem, cb, total);
     }
   }
 
@@ -448,6 +457,7 @@ class TableUI {
     }
     this.isTimerPaused = false;
     this.timerRemaining = 0;
+    this.totalTurnDuration = null;
     this.timerOnTimeout = null;
     if (this.currentTimerSeat !== null) {
       const timerContainer = document.getElementById(`timer-ui-${this.currentTimerSeat}`);

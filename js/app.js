@@ -27,6 +27,7 @@ class HikaPokerApp {
 
     // Gestion du Mode Pause
     this.isPaused = false;
+    this.pendingTurnEvent = null;
     this.botStepStartTime = null;
     this.botStepDuration = 0;
     this.botStepRemaining = 0;
@@ -44,7 +45,11 @@ class HikaPokerApp {
     // 1. Initialiser les modules graphiques et sonores
     window.tableUI.init();
     window.playerControlsUI.init((action) => this.handlePlayerAction(action));
-    window.luckyWheel.init();
+    try {
+      if (window.luckyWheel) window.luckyWheel.init();
+    } catch (err) {
+      console.warn('[Hika-Poker] Initialisation LuckyWheel ignorée:', err);
+    }
 
     // 2. Initialiser les écouteurs d'interface (Navbar, Lobby, Modals)
     this.bindGlobalEvents();
@@ -98,7 +103,14 @@ class HikaPokerApp {
       });
     }
 
-    // Bouton Reprendre dans l'overlay de pause
+    // Boutons Reprendre dans le bandeau flottant ou modal de pause
+    const btnResumeBanner = document.getElementById('btn-resume-banner');
+    if (btnResumeBanner) {
+      btnResumeBanner.addEventListener('click', () => {
+        this.resumeGame();
+      });
+    }
+
     const btnResume = document.getElementById('btn-resume-game');
     if (btnResume) {
       btnResume.addEventListener('click', () => {
@@ -493,15 +505,23 @@ class HikaPokerApp {
     this.isPaused = false;
     if (playSound && window.soundFX) window.soundFX.playBtnClick();
 
-    // 1. Masquer l'overlay et réinitialiser l'état du bouton
+    // 1. Masquer l'indicateur de pause et réinitialiser l'état du bouton
     this.updatePauseUI(false);
 
-    // 2. Reprendre le timer de tour (humain ou bot)
+    // 2. Si un événement de tour était arrivé pendant la pause, le traiter immédiatement
+    if (this.pendingTurnEvent) {
+      const pendingEvt = this.pendingTurnEvent;
+      this.pendingTurnEvent = null;
+      this.handleTurn(pendingEvt);
+      return;
+    }
+
+    // 3. Reprendre le timer de tour (humain ou bot)
     if (window.tableUI) {
       window.tableUI.resumeTurnTimer();
     }
 
-    // 3. Reprendre la réflexion du bot si elle était en cours
+    // 4. Reprendre la réflexion du bot si elle était en cours
     if (this.botStepRemaining > 0) {
       const remainingTime = this.botStepRemaining;
       this.botStepRemaining = 0;
@@ -517,7 +537,7 @@ class HikaPokerApp {
       }, remainingTime);
     }
 
-    // 4. Reprendre le délai vers la main suivante si elle était en attente
+    // 5. Reprendre le délai vers la main suivante si elle était en attente
     if (this.nextHandRemaining > 0) {
       const remainingTime = this.nextHandRemaining;
       this.nextHandRemaining = 0;
@@ -534,10 +554,22 @@ class HikaPokerApp {
   }
 
   updatePauseUI(isPaused) {
+    const pauseBanner = document.getElementById('pause-banner');
     const pauseOverlay = document.getElementById('pause-overlay');
     const pauseBtnIcon = document.getElementById('pause-btn-icon');
     const pauseBtnText = document.getElementById('pause-btn-text');
     const btnPause = document.getElementById('btn-toggle-pause');
+    const tableView = document.getElementById('table-view');
+
+    if (pauseBanner) {
+      if (isPaused) {
+        pauseBanner.classList.remove('hidden');
+        pauseBanner.classList.add('flex');
+      } else {
+        pauseBanner.classList.add('hidden');
+        pauseBanner.classList.remove('flex');
+      }
+    }
 
     if (pauseOverlay) {
       if (isPaused) {
@@ -549,6 +581,14 @@ class HikaPokerApp {
       }
     }
 
+    if (tableView) {
+      if (isPaused) {
+        tableView.classList.add('game-paused');
+      } else {
+        tableView.classList.remove('game-paused');
+      }
+    }
+
     if (pauseBtnIcon) {
       pauseBtnIcon.textContent = isPaused ? '▶️' : '⏸️';
     }
@@ -557,11 +597,13 @@ class HikaPokerApp {
     }
     if (btnPause) {
       if (isPaused) {
-        btnPause.classList.remove('bg-amber-600/20', 'text-amber-300', 'border-amber-500/40');
-        btnPause.classList.add('bg-emerald-600/30', 'text-emerald-300', 'border-emerald-500/50');
+        btnPause.classList.remove('bg-amber-600/25', 'text-amber-300', 'border-amber-500/50', 'bg-amber-600/20', 'border-amber-500/40');
+        btnPause.classList.add('bg-gradient-to-r', 'from-emerald-600', 'to-teal-600', 'text-white', 'border-emerald-400', 'shadow-emerald-900/40', 'animate-pulse');
+        btnPause.title = "Reprendre la partie (Raccourci: P)";
       } else {
-        btnPause.classList.remove('bg-emerald-600/30', 'text-emerald-300', 'border-emerald-500/50');
-        btnPause.classList.add('bg-amber-600/20', 'text-amber-300', 'border-amber-500/40');
+        btnPause.classList.remove('bg-gradient-to-r', 'from-emerald-600', 'to-teal-600', 'text-white', 'border-emerald-400', 'shadow-emerald-900/40', 'animate-pulse');
+        btnPause.classList.add('bg-amber-600/25', 'text-amber-300', 'border-amber-500/50');
+        btnPause.title = "Mettre en pause la partie (Raccourci: P)";
       }
     }
   }
@@ -956,6 +998,11 @@ class HikaPokerApp {
   // =========================================================================
 
   handleTurn(e) {
+    if (this.isPaused) {
+      this.pendingTurnEvent = e;
+      return;
+    }
+
     const isHuman = e.playerId === this.humanId;
     const state = this.engine.getState(this.humanId);
 
@@ -1264,6 +1311,7 @@ class HikaPokerApp {
   }
 
   stopAllTimers() {
+    this.pendingTurnEvent = null;
     if (this.botStepTimeout) {
       clearTimeout(this.botStepTimeout);
       this.botStepTimeout = null;

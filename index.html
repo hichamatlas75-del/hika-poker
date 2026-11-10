@@ -305,7 +305,7 @@
   <section id="table-view" class="hidden flex-1 flex flex-col justify-between relative overflow-hidden p-1.5 sm:p-2 md:p-4">
     
     <!-- Table Header HUD -->
-    <div id="table-hud-bar" class="w-full max-w-5xl mx-auto flex items-center justify-between px-1.5 sm:px-2 py-0.5 sm:py-1 z-30">
+    <div id="table-hud-bar" class="relative z-40 w-full max-w-5xl mx-auto flex items-center justify-between px-1.5 sm:px-2 py-0.5 sm:py-1">
       <div class="flex items-center gap-1.5 sm:gap-2">
         <button id="btn-leave-table" class="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold transition-colors">
           ← Quitter
@@ -330,10 +330,10 @@
 
       <!-- Actions de Table : Pause & Thème -->
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <!-- Bouton Pause -->
-        <button id="btn-toggle-pause" title="Mettre en pause la partie" class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm">
-          <span id="pause-btn-icon">⏸️</span>
-          <span id="pause-btn-text" class="hidden sm:inline">Pause</span>
+        <!-- Bouton Pause / Reprendre -->
+        <button id="btn-toggle-pause" title="Mettre en pause ou reprendre la partie (Raccourci: P)" class="relative z-40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/50 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 shadow-md cursor-pointer">
+          <span id="pause-btn-icon" class="text-xs sm:text-sm">⏸️</span>
+          <span id="pause-btn-text" class="text-xs font-black">Pause</span>
         </button>
 
         <!-- Thème du tapis -->
@@ -348,28 +348,19 @@
       </div>
     </div>
 
-    <!-- Overlay de Pause Zynga Casino -->
-    <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none">
-      <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
-        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-3xl shadow-xl shadow-amber-500/25 animate-pulse">
-          ⏸️
-        </div>
-        <h3 class="text-xl sm:text-2xl font-black text-amber-300 font-casino mb-2">PARTIE EN PAUSE</h3>
-        <p class="text-xs sm:text-sm text-slate-300 mb-6 leading-relaxed">
-          Le chronomètre et les actions sont suspendus.<br>Prenez votre temps avant de continuer !
-        </p>
-        
-        <div class="flex flex-col gap-3">
-          <button id="btn-resume-game" class="w-full py-3 rounded-xl font-black text-xs sm:text-sm tracking-wide bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
-            <span class="text-base">▶️</span>
-            <span>REPRENDRE LA PARTIE</span>
-          </button>
-          <button id="btn-pause-leave" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors">
-            ← Quitter vers le Lobby
-          </button>
+    <!-- Bandeau Flottant Pause Casino (Laisse la table, les cartes et le pot 100% visibles) -->
+    <div id="pause-banner" class="hidden absolute top-10 sm:top-12 left-1/2 -translate-x-1/2 z-40 bg-slate-950/95 border-2 border-amber-500/80 rounded-2xl sm:rounded-full px-3.5 sm:px-5 py-1.5 sm:py-2 shadow-2xl items-center gap-2.5 sm:gap-4 backdrop-blur-md animate-fade-in pointer-events-auto">
+      <div class="flex items-center gap-2">
+        <span class="text-base sm:text-lg animate-pulse">⏸️</span>
+        <div class="flex flex-col text-left">
+          <span class="text-amber-300 font-black text-xs sm:text-sm font-casino tracking-wider">JEU EN PAUSE</span>
+          <span class="text-[9px] sm:text-[10px] text-slate-300 font-medium hidden xs:inline sm:inline">Chronomètres & actions suspendus</span>
         </div>
       </div>
+      <button id="btn-resume-banner" class="px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[11px] sm:text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-1 cursor-pointer">
+        <span>▶️</span>
+        <span>REPRENDRE</span>
+      </button>
     </div>
 
     <!-- Conteneur Tapis de Poker Ovale Zynga -->

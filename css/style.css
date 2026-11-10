@@ -784,5 +784,17 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   }
 }
 
+/* État Pause : vérouillage visuel discret des contrôles tout en gardant 100% de visibilité de la table */
+.game-paused #player-controls {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(30%);
+  transition: opacity 0.25s ease;
+}
+
+#pause-banner {
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), 0 0 18px rgba(245, 158, 11, 0.35);
+}
+
 
 
