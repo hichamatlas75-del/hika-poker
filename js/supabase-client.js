@@ -100,26 +100,33 @@ class HikaSupabaseClient {
   }
 
   formatEmail(username) {
-    const clean = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const raw = (username || '').trim().toLowerCase();
+    if (raw.includes('@') && raw.includes('.')) {
+      return raw;
+    }
+    const clean = raw.replace(/[^a-z0-9]/g, '');
     return `${clean}@hikapoker.com`;
   }
 
-  // Inscription par Pseudo + Mot de passe + Choix d'avatar
+  // Inscription par Pseudo (ou Email) + Mot de passe + Choix d'avatar
   async signUp(username, password, avatar = '👑') {
     if (!this.isReady()) {
       throw new Error("Supabase n'est pas configuré. Veuillez renseigner l'URL et la clé anonyme dans les paramètres.");
     }
 
-    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    const raw = (username || '').trim();
+    const isEmail = raw.includes('@') && raw.includes('.');
+    const cleanUsername = isEmail ? raw.split('@')[0].replace(/[^a-z0-9_-]/gi, '') : raw.replace(/[^a-z0-9]/gi, '');
+    
     if (cleanUsername.length < 3) {
-      throw new Error("Le pseudo doit contenir au moins 3 caractères alphanumériques.");
+      throw new Error("Le pseudo doit contenir au moins 3 caractères.");
     }
     if (!password || password.length < 6) {
       throw new Error("Le mot de passe doit comporter au moins 6 caractères.");
     }
 
-    const email = this.formatEmail(username);
-    const displayName = username.trim();
+    const email = this.formatEmail(raw);
+    const displayName = isEmail ? raw.split('@')[0] : raw;
 
     // 1. Inscription dans Supabase Auth
     const { data: authData, error: authError } = await this.client.auth.signUp({
@@ -178,21 +185,21 @@ class HikaSupabaseClient {
     return { user, session: authData.session };
   }
 
-  // Connexion par Pseudo + Mot de passe
+  // Connexion par Pseudo ou Email + Mot de passe
   async signIn(username, password) {
     if (!this.isReady()) {
       throw new Error("Supabase n'est pas configuré. Veuillez renseigner l'URL et la clé anonyme.");
     }
 
-    const cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (cleanUsername.length < 3) {
-      throw new Error("Veuillez saisir un pseudo valide.");
+    const raw = (username || '').trim();
+    if (raw.length < 3) {
+      throw new Error("Veuillez saisir un pseudo ou une adresse email valide.");
     }
     if (!password) {
       throw new Error("Veuillez saisir votre mot de passe.");
     }
 
-    const email = this.formatEmail(username);
+    const email = this.formatEmail(raw);
 
     const { data, error } = await this.client.auth.signInWithPassword({
       email,
