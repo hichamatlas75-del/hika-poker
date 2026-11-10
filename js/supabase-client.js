@@ -3,9 +3,9 @@
  * Gère la connexion, l'inscription par pseudo et la synchronisation cloud.
  */
 
-// Configuration par défaut connectée au projet Supabase de l'utilisateur
-const DEFAULT_SUPABASE_URL = 'https://bxgguavmuiefthqmzygy.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4Z2d1YXZtdWllZnRocW16eWd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNzYyNzIsImV4cCI6MjEwNDk1MjI3Mn0.7aGDBXzzMApGkxXuDDcwMJXxPlPsG8LEYb5WIcA--00';
+// Configuration par défaut connectée au projet Supabase Hika-Poker
+const DEFAULT_SUPABASE_URL = 'https://szvdtbzrjmikfnkmvlhf.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6dmR0Ynpyam1pa2Zua212bGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzNDMyOTIsImV4cCI6MjEwOTkxOTI5Mn0.7gJDYwtk83pUUTQct7Ib_IQUTwHc5S-IoVJuoKENUJc';
 
 class HikaSupabaseClient {
   constructor() {
