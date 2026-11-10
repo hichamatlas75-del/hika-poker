@@ -670,7 +670,10 @@ class HikaPokerApp {
     const humanResult = result.players.find((p) => p.id === this.humanId);
     if (humanResult) {
       if (humanResult.won > 0) {
-        if (window.soundFX) window.soundFX.playWin();
+        if (window.soundFX) {
+          window.soundFX.playWin();
+          window.soundFX.playApplause();
+        }
         window.storageManager.recordHand({
           won: true,
           pot: humanResult.won,
@@ -716,7 +719,11 @@ class HikaPokerApp {
         });
       }
     } else {
-      // Tour d'un bot
+      // Tour d'un bot : clic doux et discret spatialisé selon le siège
+      const panBySeat = [-0.4, -0.3, 0, 0.3, 0.4];
+      const botPan = uiSeatIdx > 0 ? (panBySeat[uiSeatIdx - 1] || 0) : 0;
+      if (window.soundFX) window.soundFX.playOtherTurn(botPan);
+
       window.playerControlsUI.updateState(null, false, this.engine.blinds.bigBlind);
 
       // Délai de réflexion réaliste (700ms à 1600ms) pour une immersion parfaite

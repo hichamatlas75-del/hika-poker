@@ -90,6 +90,7 @@ class TournamentManager {
 
       if (isWinner && window.soundFX) {
         window.soundFX.playWin();
+        window.soundFX.playApplause();
       }
     }
     this.active = false;

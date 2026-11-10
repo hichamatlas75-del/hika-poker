@@ -175,7 +175,10 @@ class LuckyWheel {
 
   onSpinComplete() {
     const winner = this.getCurrentWinningSegment();
-    if (window.soundFX) window.soundFX.playWin();
+    if (window.soundFX) {
+      window.soundFX.playWin();
+      window.soundFX.playApplause();
+    }
 
     // Ajouter les jetons
     const newTotal = window.storageManager.addChips(winner.value);

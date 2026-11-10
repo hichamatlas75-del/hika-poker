@@ -399,8 +399,8 @@ class TableUI {
 
       timerBar.style.strokeDashoffset = offset;
 
-      // Moins de 3 secondes restantes : mode urgent
-      if (remaining <= 3500) {
+      // Moins de 3 secondes restantes : mode urgent UNIQUEMENT pour le joueur humain (siège 0)
+      if (uiSeatIdx === 0 && remaining <= 3500) {
         timerBar.classList.add('urgent');
         const sec = Math.ceil(remaining / 1000);
         if (sec !== lastSecondTicked && sec > 0) {

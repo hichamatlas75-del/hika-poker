@@ -15,6 +15,7 @@ class SoundFX {
     this.dryGain = null;
     this.pinkNoiseBuffer = null;
     this.whiteNoiseBuffer = null;
+    this.applauseBuffer = null;
     this.muted = false;
     this.volume = 0.70;
     this.hapticsEnabled = true;
@@ -157,6 +158,57 @@ class SoundFX {
     const whiteData = this.whiteNoiseBuffer.getChannelData(0);
     for (let i = 0; i < len; i++) {
       whiteData[i] = (Math.random() * 2 - 1) * 0.25;
+    }
+
+    // Pré-génération des applaudissements du casino
+    this._buildApplauseBuffer();
+  }
+
+  /**
+   * Synthèse procédurale d'applaudissements de casino (foule enthousiaste en stéréo)
+   * Génère ~140 claquements de mains individuels superposés avec résonances de paumes
+   */
+  _buildApplauseBuffer() {
+    if (!this.ctx) return;
+    try {
+      const rate = this.ctx.sampleRate;
+      const dur = 3.2;
+      const len = Math.floor(rate * dur);
+      this.applauseBuffer = this.ctx.createBuffer(2, len, rate);
+      const left = this.applauseBuffer.getChannelData(0);
+      const right = this.applauseBuffer.getChannelData(1);
+
+      const numClaps = 140;
+      for (let c = 0; c < numClaps; c++) {
+        const r = Math.random();
+        // Distribution temporelle : crescendo rapide (0-0.3s) puis acclamation soutenue et decrescendo doux
+        const tFrac = r < 0.25 ? (r / 0.25) * 0.25 : 0.25 + ((r - 0.25) / 0.75) * 0.75;
+        const startSample = Math.floor(tFrac * (len - rate * 0.18));
+
+        const pan = Math.random() * 2 - 1;
+        const lGain = Math.cos((pan + 1) * Math.PI / 4);
+        const rGain = Math.sin((pan + 1) * Math.PI / 4);
+
+        const normT = startSample / len;
+        const env = Math.sin(normT * Math.PI) * (0.65 + Math.random() * 0.35);
+
+        const clapLen = Math.floor((0.016 + Math.random() * 0.016) * rate);
+        const freq = 750 + Math.random() * 1100;
+        const decayConst = 0.005 + Math.random() * 0.005;
+
+        for (let i = 0; i < clapLen && (startSample + i) < len; i++) {
+          const t = i / rate;
+          const decay = Math.exp(-t / decayConst);
+          const noise = (Math.random() * 2 - 1) * 0.65;
+          const body = Math.sin(2 * Math.PI * freq * t) * 0.35;
+          const sample = (noise + body) * decay * env * 0.28;
+
+          left[startSample + i] += sample * lGain;
+          right[startSample + i] += sample * rGain;
+        }
+      }
+    } catch (e) {
+      this.applauseBuffer = null;
     }
   }
 
@@ -553,6 +605,60 @@ class SoundFX {
   }
 
   /**
+   * Clic doux pour le tour des autres joueurs (soft, feutré, chaleureux et non intrusif)
+   */
+  playOtherTurn(pan = 0) {
+    if (this.muted) return;
+    const ctx = this._getCtx();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const { main } = this._createOutNode(ctx, pan);
+
+    // Ton chaud et doux (sinusoïde feutrée 280Hz -> 130Hz)
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.exponentialRampToValueAtTime(130, now + 0.024);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(650, now); // Coupe les fréquences aiguës pour un son très soft
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.003); // Volume doux
+    gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.026);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(main);
+
+    osc.start(now);
+    osc.stop(now + 0.030);
+
+    // Léger frottement de feutrine d'accompagnement
+    if (this.pinkNoiseBuffer) {
+      const noise = ctx.createBufferSource();
+      noise.buffer = this.pinkNoiseBuffer;
+
+      const nFilter = ctx.createBiquadFilter();
+      nFilter.type = 'lowpass';
+      nFilter.frequency.setValueAtTime(500, now);
+
+      const nGain = ctx.createGain();
+      nGain.gain.setValueAtTime(0.04, now);
+      nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
+
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(main);
+      noise.start(now, Math.random() * 0.5, 0.025);
+    }
+  }
+
+  /**
    * Compte à rebours du tour
    * - Normal : tic discret de montre suisse
    * - Urgent (< 3s) : double pulsation rythmée avec montée de tension
@@ -679,6 +785,43 @@ class SoundFX {
 
     // Cascade de jetons célébrant la victoire
     setTimeout(() => this.playChipsStack(6), 200);
+  }
+
+  /**
+   * Applaudissements du public de casino (Ovation chaleureuse lors d'une victoire)
+   */
+  playApplause(duration = 3.2) {
+    if (this.muted) return;
+    const ctx = this._getCtx();
+    if (!ctx || !this.applauseBuffer) return;
+
+    const now = ctx.currentTime;
+    const source = ctx.createBufferSource();
+    source.buffer = this.applauseBuffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400, now);
+    filter.Q.setValueAtTime(0.85, now);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.72, now + 0.20);
+    gain.gain.setValueAtTime(0.68, now + duration - 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    if (this.reverbNode) {
+      const revSend = ctx.createGain();
+      revSend.gain.setValueAtTime(0.35, now);
+      gain.connect(revSend);
+      revSend.connect(this.reverbNode);
+    }
+
+    source.start(now);
   }
 
   /**
