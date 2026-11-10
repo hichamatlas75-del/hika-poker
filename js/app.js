@@ -21,6 +21,9 @@ class HikaPokerApp {
     this.runoutHandEnd = null;
     this.runoutTimeouts = [];
     this.runoutContenders = [];
+
+    // Maintien de l'écran allumé (Screen Wake Lock)
+    this.wakeLock = null;
   }
 
   init() {
@@ -134,6 +137,16 @@ class HikaPokerApp {
         this.leaveTable();
       });
     }
+
+    // Gestion du maintien de l'écran allumé (Screen Wake Lock) lors du retour au premier plan
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        const tableView = document.getElementById('table-view');
+        if (tableView && !tableView.classList.contains('hidden') && this.engine) {
+          this.requestWakeLock();
+        }
+      }
+    });
   }
 
   applyTheme(theme) {
@@ -322,10 +335,12 @@ class HikaPokerApp {
     document.getElementById('lobby-view').classList.add('hidden');
     document.getElementById('table-view').classList.remove('hidden');
     document.getElementById('current-table-title').textContent = tableName;
+    this.requestWakeLock();
   }
 
   leaveTable() {
     this.stopAllTimers();
+    this.releaseWakeLock();
 
     // Si partie de cash game, recréditer les jetons restants du joueur sur son compte principal
     if (this.gameMode === 'cash' && this.engine) {
@@ -344,6 +359,34 @@ class HikaPokerApp {
     document.getElementById('table-view').classList.add('hidden');
     document.getElementById('lobby-view').classList.remove('hidden');
     this.updateUserHeader();
+  }
+
+  async requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        if (!this.wakeLock) {
+          this.wakeLock = await navigator.wakeLock.request('screen');
+          this.wakeLock.addEventListener('release', () => {
+            this.wakeLock = null;
+          });
+          console.log('[Hika-Poker] Screen Wake Lock activé.');
+        }
+      } catch (err) {
+        console.warn('[Hika-Poker] Screen Wake Lock non disponible ou refusé:', err);
+      }
+    }
+  }
+
+  async releaseWakeLock() {
+    if (this.wakeLock) {
+      try {
+        await this.wakeLock.release();
+      } catch (err) {
+        // Ignorer si déjà libéré
+      }
+      this.wakeLock = null;
+      console.log('[Hika-Poker] Screen Wake Lock relâché.');
+    }
   }
 
   // =========================================================================
@@ -714,8 +757,9 @@ class HikaPokerApp {
       // Si aucune pré-action n'a été exécutée automatiquement, lancer le timer de 15s
       if (!preActionExecuted) {
         window.tableUI.startTurnTimer(uiSeatIdx, 15000, () => {
-          // Auto-action en cas d'expiration du temps
-          this.engine.autoAct(this.humanId);
+          // Auto-action en cas d'expiration du temps : Fold systématique demandé
+          if (window.soundFX) window.soundFX.playFold();
+          this.handlePlayerAction({ type: 'fold' });
         });
       }
     } else {
@@ -755,6 +799,7 @@ class HikaPokerApp {
   startNextHand() {
     if (!this.engine) return;
     this.stopAllTimers();
+    this.requestWakeLock();
 
     // Vérifier si le joueur humain a encore des jetons
     const humanP = this.engine.getPlayer(this.humanId);

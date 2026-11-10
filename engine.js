@@ -568,11 +568,12 @@
       return { ok: true, action: rec };
     }
 
-    /** Action automatique (timeout) : check si possible, sinon fold. */
-    autoAct(id) {
+    /** Action automatique (timeout) : fold si preferFold, sinon check si possible puis fold. */
+    autoAct(id, preferFold = false) {
       const p = this._byId(id);
       if (!p) return fail('UNKNOWN_PLAYER', 'Joueur inconnu');
       if (this.currentSeat !== p.seat) return fail('NOT_YOUR_TURN', 'Ce n’est pas votre tour');
+      if (preferFold) return this.act(id, { type: 'fold' });
       return this.act(id, { type: this._legalFor(p).canCheck ? 'check' : 'fold' });
     }
 
