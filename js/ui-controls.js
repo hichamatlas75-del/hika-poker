@@ -114,8 +114,10 @@ class PlayerControlsUI {
     if (btnQuickHalfPot) {
       btnQuickHalfPot.addEventListener('click', () => {
         if (!this.currentLegal) return;
-        const halfPot = Math.round(this.currentLegal.potSize / 2);
-        const to = Math.max(this.currentLegal.minRaiseTo, Math.min(this.currentLegal.maxRaiseTo, (this.currentLegal.toCall || 0) + halfPot));
+        const curBet = this.currentLegal.currentBet || 0;
+        const pot = this.currentLegal.potSize || 0;
+        const toCall = this.currentLegal.toCall || 0;
+        const to = curBet + Math.round((pot + toCall) * 0.5);
         this.setSliderValue(to);
       });
     }
@@ -124,8 +126,10 @@ class PlayerControlsUI {
     if (btnQuickPot) {
       btnQuickPot.addEventListener('click', () => {
         if (!this.currentLegal) return;
-        const pot = this.currentLegal.potSize;
-        const to = Math.max(this.currentLegal.minRaiseTo, Math.min(this.currentLegal.maxRaiseTo, (this.currentLegal.toCall || 0) + pot));
+        const curBet = this.currentLegal.currentBet || 0;
+        const pot = this.currentLegal.potSize || 0;
+        const toCall = this.currentLegal.toCall || 0;
+        const to = curBet + pot + toCall;
         this.setSliderValue(to);
       });
     }
@@ -197,7 +201,7 @@ class PlayerControlsUI {
       // Pas mon tour : masquer la barre d'action, afficher la barre de pré-action
       this.hideActionBar();
       this.showPreActionBar();
-      return;
+      return false;
     }
 
     // C'est mon tour !
@@ -206,11 +210,12 @@ class PlayerControlsUI {
     // Vérifier si une pré-action peut être exécutée automatiquement
     if (this.preAction) {
       const executed = this.tryExecutePreAction(legal);
-      if (executed) return;
+      if (executed) return true;
     }
 
     // Sinon, afficher les boutons d'action appropriés
     this.showActionBar(legal);
+    return false;
   }
 
   tryExecutePreAction(legal) {
@@ -299,7 +304,7 @@ class PlayerControlsUI {
     if (legal.canRaise && this.raiseSliderEl) {
       this.raiseSliderEl.min = legal.minRaiseTo;
       this.raiseSliderEl.max = legal.maxRaiseTo;
-      this.raiseSliderEl.step = this.currentBigBlind || 20;
+      this.raiseSliderEl.step = 1; // Permet d'atteindre toutes les valeurs exactes (dont maxRaiseTo / All-in)
       this.raiseSliderEl.value = legal.minRaiseTo;
       this.updateSliderValueDisplay();
     }

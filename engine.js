@@ -713,7 +713,8 @@
         canCheck: toCall === 0, canCall: toCall > 0 && p.chips > 0,
         canRaise, canBet: canRaise && this.currentBet === 0, canAllIn,
         minRaiseTo: canRaise ? minRaiseTo : null, maxRaiseTo: canRaise ? maxRaiseTo : null,
-        allInAmount: maxTo, potSize: this._potTotal()
+        allInAmount: maxTo, potSize: this._potTotal(),
+        currentBet: this.currentBet, playerBet: p.bet
       };
     }
 

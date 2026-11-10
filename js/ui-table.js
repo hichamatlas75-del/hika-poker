@@ -165,9 +165,8 @@ class TableUI {
         `;
         this.seatsContainer.appendChild(seatDiv);
         continue;
-      }
-
       // Siège occupé
+      seatDiv.dataset.playerId = p.id;
       const isCurrentTurn = p.isCurrent;
       const isHuman = p.id === humanPlayerId;
       const isFolded = p.folded;
@@ -356,6 +355,10 @@ class TableUI {
 
       this.seatsContainer.appendChild(seatDiv);
     }
+
+    if (this.currentEquities) {
+      this.renderEquities(this.currentEquities);
+    }
   }
 
   getBetPositionClass(uiIdx) {
@@ -423,6 +426,12 @@ class TableUI {
     }
   }
 
+  // Trouver l'élément DOM du siège d'un joueur
+  getSeatElement(playerId) {
+    if (!playerId || !this.seatsContainer) return null;
+    return this.seatsContainer.querySelector(`[data-player-id="${playerId}"]`);
+  }
+
   // Animation de jetons volants (mise vers pot ou pot vers joueur)
   flyChips(fromEl, toEl, onComplete = null) {
     if (!fromEl || !toEl) {
@@ -433,16 +442,21 @@ class TableUI {
     const rFrom = fromEl.getBoundingClientRect();
     const rTo = toEl.getBoundingClientRect();
 
+    if (rFrom.width === 0 || rTo.width === 0) {
+      if (onComplete) onComplete();
+      return;
+    }
+
     const startX = rFrom.left + rFrom.width / 2;
     const startY = rFrom.top + rFrom.height / 2;
     const endX = rTo.left + rTo.width / 2;
     const endY = rTo.top + rTo.height / 2;
 
     const chip = document.createElement('div');
-    chip.className = 'flying-chip poker-chip chip-gold w-6 h-6 text-[10px]';
+    chip.className = 'flying-chip poker-chip chip-gold w-6 h-6 text-[10px] fixed z-50 pointer-events-none transition-all duration-500 ease-out flex items-center justify-center shadow-lg';
     chip.innerHTML = '★';
-    chip.style.left = `${startX}px`;
-    chip.style.top = `${startY}px`;
+    chip.style.left = `${startX - 12}px`;
+    chip.style.top = `${startY - 12}px`;
     document.body.appendChild(chip);
 
     if (window.soundFX) window.soundFX.playChip();
@@ -450,13 +464,42 @@ class TableUI {
     // Force reflow
     void chip.offsetWidth;
 
-    chip.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(1.2)`;
-    chip.style.opacity = '0.9';
+    chip.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(1.15)`;
+    chip.style.opacity = '1';
 
     setTimeout(() => {
       chip.remove();
       if (onComplete) onComplete();
-    }, 550);
+    }, 520);
+  }
+
+  // Affichage des probabilités (%) All-In sur chaque joueur en lice
+  renderEquities(equitiesMap) {
+    this.currentEquities = equitiesMap;
+    if (!equitiesMap) return;
+
+    Object.keys(equitiesMap).forEach((pId) => {
+      const pct = equitiesMap[pId];
+      const seatEl = this.getSeatElement(pId);
+      if (!seatEl) return;
+
+      let badge = seatEl.querySelector('.equity-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'equity-badge absolute -top-3.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black tracking-wide bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-slate-950 border border-yellow-200 shadow-lg shadow-yellow-500/50 z-30 animate-pulse transition-all duration-300';
+        const targetPod = seatEl.querySelector('.hero-seat-pod') || seatEl.querySelector('.bot-seat-pod') || seatEl;
+        targetPod.appendChild(badge);
+      }
+      badge.textContent = `${pct}%`;
+      badge.style.display = 'block';
+    });
+  }
+
+  clearEquities() {
+    this.currentEquities = null;
+    if (this.seatsContainer) {
+      this.seatsContainer.querySelectorAll('.equity-badge').forEach((b) => b.remove());
+    }
   }
 
   // Affichage de la bannière de victoire au Showdown

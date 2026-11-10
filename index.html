@@ -138,103 +138,144 @@
     </div>
 
     <!-- Grille des Modes de Jeu -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
       
       <!-- Table 1 : Cash Game Débutant -->
-      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-5 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
         <div class="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
-        <div class="flex items-center justify-between mb-4">
-          <span class="px-2.5 py-1 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-            CASH GAME
-          </span>
-          <span class="text-2xl">🟢</span>
-        </div>
-        <h3 class="text-xl font-black text-white mb-1">Table Amateur</h3>
-        <p class="text-xs text-slate-400 mb-4">Blinds légères pour s'échauffer et parfaire ses cotes du pot.</p>
-        
-        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-          <div class="flex justify-between">
-            <span class="text-slate-400">Blinds :</span>
-            <span class="font-bold text-amber-300">10 / 20</span>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+              CASH GAME
+            </span>
+            <span class="text-xl">🟢</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Cave (Buy-in) :</span>
-            <span class="font-bold text-emerald-400">1,000 🪙</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Places :</span>
-            <span class="font-bold">6 Joueurs (5 Bots)</span>
+          <h3 class="text-lg font-black text-white mb-1">Table Amateur</h3>
+          <p class="text-xs text-slate-400 mb-3">Blinds légères pour s'échauffer et parfaire ses cotes.</p>
+          
+          <div class="space-y-1.5 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Blinds :</span>
+              <span class="font-bold text-amber-300">10 / 20</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Cave :</span>
+              <span class="font-bold text-emerald-400">1,000 🪙</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Places :</span>
+              <span class="font-bold">6 Joueurs</span>
+            </div>
           </div>
         </div>
 
-        <button data-stakes="micro" class="btn-select-cash-table w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
-          <span>REJOINDRE LA TABLE</span>
+        <button data-stakes="micro" class="btn-select-cash-table w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+          <span>REJOINDRE</span>
           <span>→</span>
         </button>
       </div>
 
       <!-- Table 2 : Cash Game Vegas Pro -->
-      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-5 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
         <div class="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
-        <div class="flex items-center justify-between mb-4">
-          <span class="px-2.5 py-1 rounded-md bg-blue-950 border border-blue-500/30 text-blue-400 text-xs font-bold">
-            VEGAS PRO
-          </span>
-          <span class="text-2xl">🔵</span>
-        </div>
-        <h3 class="text-xl font-black text-white mb-1">Table Vegas</h3>
-        <p class="text-xs text-slate-400 mb-4">Adversaires tactiques avec relances agressives et bluff réaliste.</p>
-        
-        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-          <div class="flex justify-between">
-            <span class="text-slate-400">Blinds :</span>
-            <span class="font-bold text-amber-300">50 / 100</span>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-blue-950 border border-blue-500/30 text-blue-400 text-[11px] font-bold">
+              VEGAS PRO
+            </span>
+            <span class="text-xl">🔵</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Cave (Buy-in) :</span>
-            <span class="font-bold text-blue-400">5,000 🪙</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Places :</span>
-            <span class="font-bold">6 Joueurs (5 Bots)</span>
+          <h3 class="text-lg font-black text-white mb-1">Table Vegas</h3>
+          <p class="text-xs text-slate-400 mb-3">Adversaires tactiques avec relances et bluff réaliste.</p>
+          
+          <div class="space-y-1.5 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Blinds :</span>
+              <span class="font-bold text-amber-300">50 / 100</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Cave :</span>
+              <span class="font-bold text-blue-400">5,000 🪙</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Places :</span>
+              <span class="font-bold">6 Joueurs</span>
+            </div>
           </div>
         </div>
 
-        <button data-stakes="low" class="btn-select-cash-table w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
-          <span>REJOINDRE LA TABLE</span>
+        <button data-stakes="low" class="btn-select-cash-table w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+          <span>REJOINDRE</span>
           <span>→</span>
         </button>
       </div>
 
-      <!-- Table 3 : Tournoi Sit & Go Éliminatoire -->
-      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/40 hover:border-amber-400 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
-        <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/15 rounded-full blur-2xl"></div>
-        <div class="flex items-center justify-between mb-4">
-          <span class="px-2.5 py-1 rounded-md bg-amber-950 border border-amber-500/40 text-amber-300 text-xs font-black tracking-wider animate-pulse">
-            ★ TOURNOI SIT & GO ★
-          </span>
-          <span class="text-2xl">🏆</span>
-        </div>
-        <h3 class="text-xl font-black text-amber-200 mb-1">6-Max Championship</h3>
-        <p class="text-xs text-slate-400 mb-4">Mode éliminatoire direct ! Blinds progressives toutes les 3 mains.</p>
-        
-        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
-          <div class="flex justify-between">
-            <span class="text-slate-400">Structure :</span>
-            <span class="font-bold text-amber-300">Blinds progressives</span>
+      <!-- Table 3 : Table VIP High Roller -->
+      <div class="bg-gradient-to-b from-slate-900 via-purple-950/40 to-slate-950 border border-amber-500/30 hover:border-amber-400 rounded-2xl p-5 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+        <div class="absolute top-0 right-0 w-28 h-28 bg-amber-500/15 rounded-full blur-2xl group-hover:bg-amber-500/25 transition-all"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-amber-950/90 border border-amber-400/60 text-amber-300 text-[11px] font-black tracking-wider">
+              👑 VIP HIGH ROLLER
+            </span>
+            <span class="text-xl">💎</span>
           </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Buy-in :</span>
-            <span class="font-bold text-amber-400">2,500 🪙</span>
-          </div>
-          <div class="flex justify-between">
-            <span class="text-slate-400">Prize Pool :</span>
-            <span class="font-black text-yellow-300">15,000 🪙</span>
+          <h3 class="text-lg font-black text-amber-200 mb-1">VIP High Roller</h3>
+          <p class="text-xs text-slate-400 mb-3">Hautes limites réservées aux légendes du tapis vert.</p>
+          
+          <div class="space-y-1.5 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-amber-500/20">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Blinds :</span>
+              <span class="font-bold text-amber-300">500 / 1,000</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Cave :</span>
+              <span class="font-bold text-yellow-300">50,000 🪙</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Places :</span>
+              <span class="font-bold">6 Joueurs</span>
+            </div>
           </div>
         </div>
 
-        <button id="btn-start-tournament" class="w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2">
-          <span>LANCER LE TOURNOI</span>
+        <button data-stakes="high" class="btn-select-cash-table w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-lg shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+          <span>REJOINDRE VIP</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- Table 4 : Tournoi Sit & Go Éliminatoire -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-red-500/40 hover:border-red-400 rounded-2xl p-5 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between">
+        <div class="absolute -top-10 -right-10 w-28 h-28 bg-red-500/15 rounded-full blur-2xl"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-md bg-red-950 border border-red-500/40 text-red-300 text-[11px] font-black tracking-wider animate-pulse">
+              ★ SIT & GO ★
+            </span>
+            <span class="text-xl">🏆</span>
+          </div>
+          <h3 class="text-lg font-black text-red-200 mb-1">Championship</h3>
+          <p class="text-xs text-slate-400 mb-3">Mode éliminatoire direct ! Blinds progressives.</p>
+          
+          <div class="space-y-1.5 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+            <div class="flex justify-between">
+              <span class="text-slate-400">Structure :</span>
+              <span class="font-bold text-amber-300">Progressive</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Buy-in :</span>
+              <span class="font-bold text-red-400">2,500 🪙</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-400">Prize Pool :</span>
+              <span class="font-black text-yellow-300">15,000 🪙</span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-start-tournament" class="w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-red-600 via-rose-500 to-red-600 hover:from-red-500 hover:to-rose-400 text-white shadow-xl shadow-red-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+          <span>TOURNOI</span>
           <span>🏆</span>
         </button>
       </div>
