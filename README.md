@@ -41,8 +41,27 @@
 - Effets sonores intégrés sans fichier externe (bruit de cartes, tintement de jetons, knock check, fanfare de victoire, alertes timer).
 - Contrôle Mute instantané depuis la barre supérieure.
 
-### 6. Persistance Locale (localStorage)
-- Sauvegarde de la bankroll du joueur, historique des mains, statistiques (mains jouées, mains gagnées, plus gros pot, tournois remportés) et réglages.
+### 6. Synchronisation Cloud Supabase & Persistance
+- **Authentification par Pseudo + Mot de passe** (avec email interne automatique `@hikapoker.app`).
+- **Sauvegarde temps réel** du solde de jetons, des statistiques complètes et du cooldown de la `Lucky Wheel`.
+- **Historique des mains jouées** (`hand_history`) synchronisé dans le cloud.
+- **Classement mondial (Leaderboard Top 10)** des joueurs les plus fortunés.
+- **Mode Invité 100% autonome** en fallback local immédiat (`localStorage`) sans blocage.
+
+---
+
+## ⚡ Connexion à Supabase
+
+1. **Créer un projet sur [Supabase.com](https://supabase.com)** (gratuit).
+2. **Exécuter le script SQL** :
+   - Ouvrez l'éditeur SQL dans votre dashboard Supabase.
+   - Copiez et exécutez l'intégralité du fichier [`supabase-schema.sql`](./supabase-schema.sql).
+3. **Désactiver la confirmation d'email** :
+   - Rendez-vous dans *Authentication > Providers > Email*.
+   - Décochez **"Confirm email"** (pour permettre l'inscription et la connexion directes par pseudo).
+4. **Configurer vos identifiants** :
+   - Soit dans `js/supabase-client.js` en renseignant `DEFAULT_SUPABASE_URL` et `DEFAULT_SUPABASE_ANON_KEY`.
+   - Soit directement depuis le jeu en cliquant sur votre profil dans le header > **⚙️ Paramètres Supabase**.
 
 ---
 
@@ -52,17 +71,19 @@
 hika-poker/
 ├── index.html              # Interface principale complète (Lobby, Table, Modals)
 ├── engine.js               # Moteur Texas Hold'em No-Limit complet
+├── supabase-schema.sql     # Schéma SQL Supabase (profiles, hand_history, RLS)
 ├── css/
 │   └── style.css           # Direction artistique Zynga, animations 3D, feutre, timer
 └── js/
+    ├── supabase-client.js  # Client Supabase v2, auth par pseudo et gestion de session
     ├── audio.js            # Moteur sonore synthétique Web Audio API
-    ├── storage.js          # Persistance locale (profil, stats, paramètres)
+    ├── storage.js          # Cache synchrone local + synchronisation cloud asynchrone
     ├── bot-names.js        # Roster des bots avec avatars et personnalités
     ├── wheel.js            # Mini-jeu Lucky Wheel (Canvas 2D, physique, confettis)
     ├── tournament.js       # Gestionnaire du tournoi Sit & Go 6-Max
     ├── ui-table.js         # Rendu de la table, sièges, cartes 3D, jetons
     ├── ui-controls.js      # Barre d'actions, Raise Slider, pré-actions
-    └── app.js              # Chef d'orchestre reliant UI et PokerEngine
+    └── app.js              # Chef d'orchestre reliant UI, PokerEngine et Supabase
 ```
 
 ---
@@ -74,3 +95,4 @@ Ouvrez simplement `index.html` dans n'importe quel navigateur moderne, ou lancez
 python3 -m http.server 8080
 ```
 Puis accédez à `http://localhost:8080`.
+

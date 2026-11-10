@@ -3,12 +3,13 @@
  * Gestion du cache offline et installation autonome plein écran.
  */
 
-const CACHE_NAME = 'hika-poker-v1.1';
+const CACHE_NAME = 'hika-poker-v1.2';
 const ASSETS_TO_CACHE = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/style.css',
+  'js/supabase-client.js',
   'engine.js',
   'js/audio.js',
   'js/storage.js',

@@ -42,6 +42,14 @@ class HikaPokerApp {
   }
 
   init() {
+    // 0. Initialiser le client Supabase et écouter les changements d'authentification
+    if (window.supabaseClient) {
+      window.supabaseClient.init();
+      window.supabaseClient.onAuthChange(() => {
+        this.updateUserHeader();
+      });
+    }
+
     // 1. Initialiser les modules graphiques et sonores
     window.tableUI.init();
     window.playerControlsUI.init((action) => this.handlePlayerAction(action));
@@ -227,6 +235,86 @@ class HikaPokerApp {
       });
     }
 
+    // Bouton Profil dans le Header -> Ouvre le Modal de Compte / Connexion
+    const btnProfileHeader = document.getElementById('user-header-profile-btn');
+    if (btnProfileHeader) {
+      btnProfileHeader.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-rebuy-chips')) return;
+        this.openAuthModal();
+      });
+    }
+
+    // Modal Authentification
+    const btnAuthClose = document.getElementById('auth-close-btn');
+    if (btnAuthClose) {
+      btnAuthClose.addEventListener('click', () => this.closeAuthModal());
+    }
+
+    const tabAuthLogin = document.getElementById('tab-auth-login');
+    if (tabAuthLogin) {
+      tabAuthLogin.addEventListener('click', () => this.switchAuthTab('login'));
+    }
+    const tabAuthReg = document.getElementById('tab-auth-register');
+    if (tabAuthReg) {
+      tabAuthReg.addEventListener('click', () => this.switchAuthTab('register'));
+    }
+
+    const formLogin = document.getElementById('form-auth-login');
+    if (formLogin) {
+      formLogin.addEventListener('submit', (e) => this.handleAuthLogin(e));
+    }
+    const formReg = document.getElementById('form-auth-register');
+    if (formReg) {
+      formReg.addEventListener('submit', (e) => this.handleAuthRegister(e));
+    }
+
+    const btnAuthGuest = document.getElementById('btn-auth-guest');
+    if (btnAuthGuest) {
+      btnAuthGuest.addEventListener('click', () => this.closeAuthModal());
+    }
+
+    const btnAuthLogout = document.getElementById('btn-auth-logout');
+    if (btnAuthLogout) {
+      btnAuthLogout.addEventListener('click', () => this.handleAuthLogout());
+    }
+
+    const btnToggleCfg = document.getElementById('auth-toggle-config-btn');
+    const panelCfg = document.getElementById('auth-config-panel');
+    if (btnToggleCfg && panelCfg) {
+      btnToggleCfg.addEventListener('click', () => {
+        panelCfg.classList.toggle('hidden');
+      });
+    }
+
+    const btnSaveCfg = document.getElementById('btn-save-supabase-config');
+    if (btnSaveCfg) {
+      btnSaveCfg.addEventListener('click', () => {
+        const url = document.getElementById('cfg-supabase-url')?.value;
+        const key = document.getElementById('cfg-supabase-key')?.value;
+        if (window.supabaseClient && window.supabaseClient.saveCustomConfig(url, key)) {
+          this.showToast('Clés Supabase enregistrées avec succès !', '⚙️');
+          if (panelCfg) panelCfg.classList.add('hidden');
+          this.openAuthModal();
+        } else {
+          alert('Veuillez saisir une URL valide et une clé anonyme Supabase.');
+        }
+      });
+    }
+
+    // Onglets du Modal de Statistiques (Stats / Mes Mains / Leaderboard)
+    const tabStatsOverview = document.getElementById('tab-stats-overview');
+    if (tabStatsOverview) {
+      tabStatsOverview.addEventListener('click', () => this.switchStatsTab('overview'));
+    }
+    const tabStatsHands = document.getElementById('tab-stats-hands');
+    if (tabStatsHands) {
+      tabStatsHands.addEventListener('click', () => this.switchStatsTab('hands'));
+    }
+    const tabStatsLeader = document.getElementById('tab-stats-leaderboard');
+    if (tabStatsLeader) {
+      tabStatsLeader.addEventListener('click', () => this.switchStatsTab('leaderboard'));
+    }
+
     // Fermer le modal de résultat de tournoi
     const btnCloseTourneyRes = document.getElementById('btn-close-tourney-result');
     if (btnCloseTourneyRes) {
@@ -265,7 +353,12 @@ class HikaPokerApp {
 
     if (nameEl) nameEl.textContent = prof.name;
     if (chipsEl) chipsEl.textContent = prof.chips.toLocaleString();
-    if (avatarEl) avatarEl.textContent = '👑';
+    if (avatarEl) avatarEl.textContent = prof.avatar || '👑';
+
+    if (window.storageManager && typeof window.storageManager.updateCloudStatusIndicator === 'function') {
+      const isCloud = window.supabaseClient && window.supabaseClient.isReady() && !!window.supabaseClient.getCurrentUser();
+      window.storageManager.updateCloudStatusIndicator(isCloud);
+    }
   }
 
   updateChipsDisplay(newChips) {
@@ -273,23 +366,388 @@ class HikaPokerApp {
     if (chipsEl) chipsEl.textContent = newChips.toLocaleString();
   }
 
-  openStatsModal() {
-    const stats = window.storageManager.getStats();
-    const prof = window.storageManager.getProfile();
+  // =========================================================================
+  // GESTION DU MODAL STATS, MAINS & LEADERBOARD (AVEC ONGLETS)
+  // =========================================================================
 
-    document.getElementById('stat-hands-played').textContent = stats.handsPlayed;
-    document.getElementById('stat-hands-won').textContent = stats.handsWon;
-    const winRate = stats.handsPlayed > 0 ? Math.round((stats.handsWon / stats.handsPlayed) * 100) : 0;
-    document.getElementById('stat-win-rate').textContent = `${winRate}%`;
-    document.getElementById('stat-biggest-pot').textContent = stats.biggestPot.toLocaleString();
-    document.getElementById('stat-best-hand').textContent = stats.bestHand || 'Aucune';
-    document.getElementById('stat-tourney-won').textContent = `${stats.tournamentsWon} / ${stats.tournamentsPlayed}`;
-    document.getElementById('stat-total-won').textContent = stats.totalWon.toLocaleString();
+  openStatsModal() {
+    this.switchStatsTab('overview');
 
     const modal = document.getElementById('stats-modal');
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+    }
+  }
+
+  switchStatsTab(tabName) {
+    const tabOverview = document.getElementById('tab-stats-overview');
+    const tabHands = document.getElementById('tab-stats-hands');
+    const tabLeaderboard = document.getElementById('tab-stats-leaderboard');
+
+    const panelOverview = document.getElementById('stats-panel-overview');
+    const panelHands = document.getElementById('stats-panel-hands');
+    const panelLeaderboard = document.getElementById('stats-panel-leaderboard');
+
+    const tabs = [tabOverview, tabHands, tabLeaderboard];
+    const panels = [panelOverview, panelHands, panelLeaderboard];
+
+    tabs.forEach((t) => {
+      if (t) {
+        t.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
+        t.classList.add('text-slate-400');
+      }
+    });
+    panels.forEach((p) => {
+      if (p) p.classList.add('hidden');
+    });
+
+    if (tabName === 'overview') {
+      if (tabOverview) {
+        tabOverview.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabOverview.classList.remove('text-slate-400');
+      }
+      if (panelOverview) panelOverview.classList.remove('hidden');
+
+      const stats = window.storageManager.getStats();
+      const elPlayed = document.getElementById('stat-hands-played');
+      const elWon = document.getElementById('stat-hands-won');
+      const elWinRate = document.getElementById('stat-win-rate');
+      const elPot = document.getElementById('stat-biggest-pot');
+      const elBest = document.getElementById('stat-best-hand');
+      const elTourney = document.getElementById('stat-tourney-won');
+      const elTotal = document.getElementById('stat-total-won');
+
+      if (elPlayed) elPlayed.textContent = stats.handsPlayed;
+      if (elWon) elWon.textContent = stats.handsWon;
+      const winRate = stats.handsPlayed > 0 ? Math.round((stats.handsWon / stats.handsPlayed) * 100) : 0;
+      if (elWinRate) elWinRate.textContent = `${winRate}%`;
+      if (elPot) elPot.textContent = stats.biggestPot.toLocaleString();
+      if (elBest) elBest.textContent = stats.bestHand || 'Aucune';
+      if (elTourney) elTourney.textContent = `${stats.tournamentsWon} / ${stats.tournamentsPlayed}`;
+      if (elTotal) elTotal.textContent = `${stats.totalWon.toLocaleString()} 🪙`;
+
+    } else if (tabName === 'hands') {
+      if (tabHands) {
+        tabHands.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabHands.classList.remove('text-slate-400');
+      }
+      if (panelHands) panelHands.classList.remove('hidden');
+      this.renderRecentHands();
+
+    } else if (tabName === 'leaderboard') {
+      if (tabLeaderboard) {
+        tabLeaderboard.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLeaderboard.classList.remove('text-slate-400');
+      }
+      if (panelLeaderboard) panelLeaderboard.classList.remove('hidden');
+      this.renderLeaderboard();
+    }
+  }
+
+  async renderRecentHands() {
+    const listEl = document.getElementById('stats-hands-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400 animate-pulse">Chargement de l\'historique des mains...</div>';
+
+    const hands = await window.storageManager.getRecentHands(10);
+    if (!hands || hands.length === 0) {
+      listEl.innerHTML = `
+        <div class="text-center py-8 text-xs text-slate-400 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+          <span class="text-2xl block mb-2">🃏</span>
+          <p class="font-bold text-slate-300">Aucune main enregistrée</p>
+          <p class="text-[10px] text-slate-500 mt-1">Lancez une partie Cash Game ou Tournoi pour voir vos mains ici !</p>
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = hands.map((h) => {
+      const isWin = !!h.won;
+      const chipBadge = isWin
+        ? `<span class="px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/40 text-emerald-400 font-black text-xs">+${Number(h.potAmount || 0).toLocaleString()} 🪙</span>`
+        : `<span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-slate-400 font-bold text-xs">Perdu / Fold</span>`;
+
+      const comboText = h.handLabel || (isWin ? 'Main gagnante' : 'Couché');
+      const modeText = h.gameMode === 'tournament' ? '🏆 Tournoi' : '🎰 Cash';
+
+      let timeText = '';
+      if (h.createdAt) {
+        try {
+          const d = new Date(h.createdAt);
+          timeText = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          timeText = '';
+        }
+      }
+
+      return `
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 transition-colors">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg ${isWin ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'} flex items-center justify-center text-sm font-black">
+              ${isWin ? '★' : '•'}
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-black text-white">${comboText}</span>
+                <span class="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">${modeText}</span>
+              </div>
+              <span class="text-[10px] text-slate-500">${timeText}</span>
+            </div>
+          </div>
+          <div>
+            ${chipBadge}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async renderLeaderboard() {
+    const listEl = document.getElementById('stats-leaderboard-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400 animate-pulse">Chargement du classement mondial...</div>';
+
+    const topPlayers = await window.storageManager.getLeaderboard(10);
+    if (!topPlayers || topPlayers.length === 0) {
+      listEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">Classement temporairement indisponible.</div>';
+      return;
+    }
+
+    const currentUserId = window.supabaseClient && window.supabaseClient.getCurrentUser()?.id;
+
+    listEl.innerHTML = topPlayers.map((p, idx) => {
+      const rank = idx + 1;
+      let medal = `<span class="font-bold text-slate-400 text-xs w-5 text-center">${rank}.</span>`;
+      if (rank === 1) medal = `<span class="text-base w-5 text-center">🥇</span>`;
+      else if (rank === 2) medal = `<span class="text-base w-5 text-center">🥈</span>`;
+      else if (rank === 3) medal = `<span class="text-base w-5 text-center">🥉</span>`;
+
+      const isMe = p.isCurrentUser || (currentUserId && p.id === currentUserId);
+      const rowClass = isMe
+        ? 'bg-amber-500/10 border-amber-500/50 shadow-md shadow-amber-500/10'
+        : 'bg-slate-950/70 border-slate-800/80 hover:border-slate-700';
+
+      return `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border ${rowClass} transition-colors">
+          <div class="flex items-center gap-2.5">
+            ${medal}
+            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-sm shadow">
+              ${p.avatar || '👑'}
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-black text-white truncate max-w-[120px] sm:max-w-[160px]">${p.name}</span>
+                ${isMe ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black">VOUS</span>' : ''}
+              </div>
+              <span class="text-[10px] text-slate-400">${Number(p.handsWon || 0).toLocaleString()} victoires</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span class="text-xs font-black text-amber-300">${Number(p.chips || 0).toLocaleString()} 🪙</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // =========================================================================
+  // GESTION DU MODAL AUTHENTIFICATION & COMPTE SUPABASE
+  // =========================================================================
+
+  openAuthModal() {
+    const modal = document.getElementById('auth-modal');
+    if (!modal) return;
+
+    const loggedView = document.getElementById('auth-view-logged');
+    const guestView = document.getElementById('auth-view-guest');
+    const feedback = document.getElementById('auth-feedback');
+    if (feedback) feedback.className = 'hidden';
+
+    const user = window.supabaseClient && window.supabaseClient.getCurrentUser();
+    if (user) {
+      if (loggedView) loggedView.classList.remove('hidden');
+      if (guestView) guestView.classList.add('hidden');
+
+      const prof = window.storageManager.getProfile();
+      const stats = window.storageManager.getStats();
+
+      const nameEl = document.getElementById('auth-user-card-name');
+      const avatarEl = document.getElementById('auth-user-card-avatar');
+      const chipsEl = document.getElementById('auth-user-card-chips');
+      const wonEl = document.getElementById('auth-user-card-won');
+
+      if (nameEl) nameEl.textContent = prof.name;
+      if (avatarEl) avatarEl.textContent = prof.avatar || '👑';
+      if (chipsEl) chipsEl.textContent = `${prof.chips.toLocaleString()} 🪙`;
+      if (wonEl) wonEl.textContent = stats.handsWon.toLocaleString();
+
+    } else {
+      if (loggedView) loggedView.classList.add('hidden');
+      if (guestView) guestView.classList.remove('hidden');
+
+      this.populateAuthAvatarPicker();
+      this.switchAuthTab('login');
+
+      const urlInput = document.getElementById('cfg-supabase-url');
+      const keyInput = document.getElementById('cfg-supabase-key');
+      if (urlInput && window.supabaseClient) urlInput.value = window.supabaseClient.url || '';
+      if (keyInput && window.supabaseClient) keyInput.value = window.supabaseClient.anonKey || '';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  closeAuthModal() {
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  populateAuthAvatarPicker() {
+    const grid = document.getElementById('auth-avatar-grid');
+    if (!grid || grid.children.length > 0) return;
+
+    const avatars = ['👑', '🤠', '🥷', '🦁', '🐯', '🦈', '💎', '🎲', '🃏', '🚀'];
+    const hiddenInput = document.getElementById('auth-register-avatar');
+
+    avatars.forEach((emoji, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${i === 0 ? 'border-amber-400 bg-amber-500/20 scale-105' : 'border-slate-800 hover:border-slate-700'}`;
+      btn.textContent = emoji;
+      btn.addEventListener('click', () => {
+        Array.from(grid.children).forEach((b) => {
+          b.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border border-slate-800 hover:border-slate-700';
+        });
+        btn.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-amber-500/20 border-2 border-amber-400 scale-105';
+        if (hiddenInput) hiddenInput.value = emoji;
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  switchAuthTab(tab) {
+    const tabLogin = document.getElementById('tab-auth-login');
+    const tabRegister = document.getElementById('tab-auth-register');
+    const formLogin = document.getElementById('form-auth-login');
+    const formRegister = document.getElementById('form-auth-register');
+    const feedback = document.getElementById('auth-feedback');
+    if (feedback) feedback.className = 'hidden';
+
+    if (tab === 'login') {
+      if (tabLogin) {
+        tabLogin.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLogin.classList.remove('text-slate-400');
+      }
+      if (tabRegister) {
+        tabRegister.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
+        tabRegister.classList.add('text-slate-400');
+      }
+      if (formLogin) formLogin.classList.remove('hidden');
+      if (formRegister) formRegister.classList.add('hidden');
+    } else {
+      if (tabRegister) {
+        tabRegister.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabRegister.classList.remove('text-slate-400');
+      }
+      if (tabLogin) {
+        tabLogin.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLogin.classList.add('text-slate-400');
+      }
+      if (formRegister) formRegister.classList.remove('hidden');
+      if (formLogin) formLogin.classList.add('hidden');
+    }
+  }
+
+  async handleAuthLogin(e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('auth-login-username');
+    const passwordInput = document.getElementById('auth-login-password');
+    const feedback = document.getElementById('auth-feedback');
+    const submitBtn = document.getElementById('btn-auth-login-submit');
+
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+
+    if (!username || !password) return;
+
+    if (feedback) {
+      feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-blue-950/60 text-blue-300 border border-blue-500/40 block animate-pulse';
+      feedback.textContent = 'Connexion à votre compte en cours...';
+    }
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      await window.supabaseClient.signIn(username, password);
+      if (feedback) {
+        feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 block';
+        feedback.textContent = `✅ Bienvenue, ${username} ! Synchronisation active.`;
+      }
+      this.updateUserHeader();
+      this.showToast(`Connecté avec succès en tant que ${username}`, '👑');
+      setTimeout(() => this.closeAuthModal(), 800);
+    } catch (err) {
+      if (feedback) {
+        feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-red-950/60 text-red-300 border border-red-500/40 block';
+        feedback.textContent = err.message || 'Erreur lors de la connexion.';
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  async handleAuthRegister(e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('auth-register-username');
+    const passwordInput = document.getElementById('auth-register-password');
+    const avatarInput = document.getElementById('auth-register-avatar');
+    const feedback = document.getElementById('auth-feedback');
+    const submitBtn = document.getElementById('btn-auth-register-submit');
+
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+    const avatar = avatarInput ? avatarInput.value : '👑';
+
+    if (!username || !password) return;
+
+    if (feedback) {
+      feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-blue-950/60 text-blue-300 border border-blue-500/40 block animate-pulse';
+      feedback.textContent = 'Création de votre compte et crédit des 20 000 jetons...';
+    }
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      await window.supabaseClient.signUp(username, password, avatar);
+      if (feedback) {
+        feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-emerald-950/60 text-emerald-300 border border-emerald-500/40 block';
+        feedback.textContent = `🎉 Compte créé avec succès ! +20,000 🪙 offerts !`;
+      }
+      this.updateUserHeader();
+      this.showToast(`Bienvenue sur Hika-Poker, ${username} ! +20,000 🪙`, '🎁');
+      if (window.soundFX) window.soundFX.playWin();
+      setTimeout(() => this.closeAuthModal(), 1000);
+    } catch (err) {
+      if (feedback) {
+        feedback.className = 'mt-3 p-2.5 rounded-xl text-xs font-semibold text-center bg-red-950/60 text-red-300 border border-red-500/40 block';
+        feedback.textContent = err.message || "Erreur lors de l'inscription.";
+      }
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  async handleAuthLogout() {
+    if (window.supabaseClient) {
+      await window.supabaseClient.signOut();
+      this.updateUserHeader();
+      this.showToast('Déconnecté. Mode Invité local réactivé.', '👤');
+      this.closeAuthModal();
     }
   }
 

@@ -72,15 +72,18 @@
       </div>
     </div>
 
-    <!-- Centre : Profil & Solde de Jetons Joueur -->
-    <div class="flex items-center gap-2 md:gap-3 bg-slate-900/90 border border-amber-500/30 rounded-full px-3 py-1 shadow-inner">
-      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-sm shadow" id="user-header-avatar">
+    <!-- Centre : Profil & Solde de Jetons Joueur (Cliquer pour ouvrir le compte / connexion Cloud) -->
+    <div id="user-header-profile-btn" class="flex items-center gap-2 md:gap-3 bg-slate-900/90 hover:bg-slate-800/90 border border-amber-500/30 hover:border-amber-400/60 rounded-full px-3 py-1 shadow-inner cursor-pointer transition-all active:scale-95 group" title="Gérer votre compte / Connexion Cloud Supabase">
+      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-sm shadow group-hover:scale-105 transition-transform" id="user-header-avatar">
         👑
       </div>
       <div class="flex flex-col">
-        <span class="text-xs font-bold text-slate-300 max-w-[90px] md:max-w-[120px] truncate leading-tight" id="user-header-name">
-          Hika Champion
-        </span>
+        <div class="flex items-center gap-1.5 leading-tight">
+          <span class="text-xs font-bold text-slate-300 max-w-[85px] md:max-w-[120px] truncate" id="user-header-name">
+            Hika Champion
+          </span>
+          <span id="user-header-cloud-badge" class="w-2 h-2 rounded-full bg-slate-500 flex-shrink-0" title="Mode Invité (Sauvegarde locale)"></span>
+        </div>
         <div class="flex items-center gap-1 leading-tight">
           <span class="text-xs text-amber-400">🪙</span>
           <span class="text-xs md:text-sm font-black text-amber-300 tracking-wide" id="user-header-chips">
@@ -560,52 +563,248 @@
     </div>
   </div>
 
-  <!-- Modal Statistiques du Joueur -->
-  <div id="stats-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
-    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
-      <button id="btn-close-stats" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+  <!-- Modal Authentification Supabase (Connexion / Inscription / Mode Invité) -->
+  <div id="auth-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl relative flex flex-col overflow-hidden animate-fade-in">
+      <!-- Glows d'arrière-plan -->
+      <div class="absolute -top-14 -right-14 w-36 h-36 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-14 -left-14 w-36 h-36 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Bouton Fermer -->
+      <button id="auth-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors">
+        ✕
+      </button>
+
+      <!-- En-tête : Titre & Logo -->
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
+          👑
+        </div>
+        <div>
+          <h3 class="font-casino text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400">
+            COMPTE JOUEUR
+          </h3>
+          <p class="text-[11px] sm:text-xs text-slate-400">Sauvegarde Cloud en temps réel & Classement</p>
+        </div>
+      </div>
+
+      <!-- VUE CONNECTÉ (Si déjà connecté à un compte Supabase) -->
+      <div id="auth-view-logged" class="hidden flex-col gap-4">
+        <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-3xl shadow-md" id="auth-user-card-avatar">
+            👑
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="text-xs text-slate-400 block">Joueur connecté</span>
+            <h4 class="text-base font-black text-white truncate" id="auth-user-card-name">Joueur</h4>
+            <div class="flex items-center gap-1.5 mt-0.5">
+              <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="text-[11px] font-semibold text-emerald-400">Cloud Supabase Synchronisé</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Solde Cloud</span>
+            <span class="text-sm font-black text-amber-300" id="auth-user-card-chips">20,000 🪙</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Mains Gagnées</span>
+            <span class="text-sm font-black text-emerald-400" id="auth-user-card-won">0</span>
+          </div>
+        </div>
+
+        <button id="btn-auth-logout" class="w-full py-2.5 rounded-xl font-bold text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+          <span>🚪</span>
+          <span>Se déconnecter (Revenir au Mode Invité)</span>
+        </button>
+      </div>
+
+      <!-- VUE NON CONNECTÉ (Onglets Connexion / Inscription) -->
+      <div id="auth-view-guest" class="flex flex-col">
+        <!-- Onglets Connexion / Inscription -->
+        <div class="flex rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4">
+          <button id="tab-auth-login" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all bg-amber-500 text-slate-950 shadow">
+            CONNEXION
+          </button>
+          <button id="tab-auth-register" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all text-slate-400 hover:text-white">
+            CRÉER UN COMPTE
+          </button>
+        </div>
+
+        <!-- Formulaire de Connexion -->
+        <form id="form-auth-login" class="space-y-3">
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Pseudo :</label>
+            <input type="text" id="auth-login-username" required placeholder="Ex: PokerKing" autocomplete="username" class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Mot de passe :</label>
+            <input type="password" id="auth-login-password" required placeholder="••••••••" autocomplete="current-password" class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+          </div>
+          <button type="submit" id="btn-auth-login-submit" class="w-full py-3 rounded-xl font-black text-xs sm:text-sm tracking-wide uppercase bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+            <span>🔑</span>
+            <span>SE CONNECTER</span>
+          </button>
+        </form>
+
+        <!-- Formulaire d'Inscription -->
+        <form id="form-auth-register" class="hidden space-y-3">
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Choisissez votre Pseudo :</label>
+            <input type="text" id="auth-register-username" required placeholder="Ex: VegasChampion" autocomplete="username" class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+            <span class="text-[9px] text-slate-400 mt-0.5 block">Lettres et chiffres uniquement, min. 3 caractères</span>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Mot de passe :</label>
+            <input type="password" id="auth-register-password" required minlength="6" placeholder="Min. 6 caractères" autocomplete="new-password" class="w-full bg-slate-950 border border-slate-800 focus:border-amber-500/60 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors">
+          </div>
+
+          <!-- Choix de l'avatar emoji -->
+          <div>
+            <label class="text-[11px] font-bold text-slate-300 block mb-1">Choisissez votre Avatar :</label>
+            <div class="grid grid-cols-5 gap-1.5" id="auth-avatar-grid">
+              <!-- Rempli dynamiquement -->
+            </div>
+            <input type="hidden" id="auth-register-avatar" value="👑">
+          </div>
+
+          <!-- Bonus de Bienvenue -->
+          <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2">
+            <span class="text-xl">🎁</span>
+            <span class="text-[11px] font-bold text-amber-300">+20,000 Jetons Gratuits offerts à l'inscription !</span>
+          </div>
+
+          <button type="submit" id="btn-auth-register-submit" class="w-full py-3 rounded-xl font-black text-xs sm:text-sm tracking-wide uppercase bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
+            <span>✨</span>
+            <span>CRÉER MON COMPTE (+20K 🪙)</span>
+          </button>
+        </form>
+
+        <!-- Message d'alerte / feedback -->
+        <div id="auth-feedback" class="hidden mt-3 p-2.5 rounded-xl text-xs font-semibold text-center"></div>
+
+        <!-- Séparateur & Mode Invité -->
+        <div class="flex items-center gap-2 my-3">
+          <div class="flex-1 h-px bg-slate-800"></div>
+          <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">OU</span>
+          <div class="flex-1 h-px bg-slate-800"></div>
+        </div>
+
+        <button id="btn-auth-guest" type="button" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+          <span>👤</span>
+          <span>Continuer en tant qu'Invité (Sauvegarde locale)</span>
+        </button>
+
+        <!-- Volet déroulant Configuration Supabase Personnalisée -->
+        <div class="mt-3 text-center">
+          <button id="auth-toggle-config-btn" type="button" class="text-[10px] text-slate-400 hover:text-amber-400 underline transition-colors">
+            ⚙️ Paramètres Supabase (URL / Clé)
+          </button>
+          <div id="auth-config-panel" class="hidden mt-2 p-3 bg-slate-950/90 border border-slate-800 rounded-xl text-left space-y-2">
+            <span class="text-[10px] text-slate-400 block leading-tight">Vous pouvez saisir votre propre URL et clé anonyme Supabase :</span>
+            <input type="text" id="cfg-supabase-url" placeholder="https://xyz.supabase.co" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-white outline-none">
+            <input type="text" id="cfg-supabase-key" placeholder="eyJhbGciOi..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-white outline-none">
+            <button id="btn-save-supabase-config" type="button" class="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 rounded-lg font-bold text-[10px]">
+              Enregistrer les clés
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal Statistiques, Historique & Leaderboard -->
+  <div id="stats-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden">
+      <!-- Fermer -->
+      <button id="btn-close-stats" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors">✕</button>
       
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+      <!-- En-tête -->
+      <div class="flex items-center gap-3 mb-4 flex-shrink-0">
+        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shadow-md">
           📊
         </div>
         <div>
-          <h3 class="text-lg font-black text-white">Profil & Statistiques</h3>
-          <p class="text-xs text-slate-400">Historique complet de vos performances</p>
+          <h3 class="text-base sm:text-lg font-black text-white">Profil, Historique & Classement</h3>
+          <p class="text-[11px] sm:text-xs text-slate-400">Performances, dernières mains et Top 10 mondial</p>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3 mb-6">
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Mains Jouées</span>
-          <span class="text-lg font-black text-white" id="stat-hands-played">0</span>
+      <!-- Onglets Navigation -->
+      <div class="flex rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4 flex-shrink-0">
+        <button id="tab-stats-overview" class="flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all bg-amber-500 text-slate-950 shadow">
+          📊 STATS
+        </button>
+        <button id="tab-stats-hands" class="flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all text-slate-400 hover:text-white">
+          📜 MES MAINS
+        </button>
+        <button id="tab-stats-leaderboard" class="flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1">
+          <span>🏆</span>
+          <span>TOP 10</span>
+        </button>
+      </div>
+
+      <!-- CONTENU ONGLET 1 : VUE D'ENSEMBLE STATS -->
+      <div id="stats-panel-overview" class="flex flex-col overflow-y-auto space-y-4 pr-1">
+        <div class="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Mains Jouées</span>
+            <span class="text-base sm:text-lg font-black text-white" id="stat-hands-played">0</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Mains Gagnées</span>
+            <span class="text-base sm:text-lg font-black text-emerald-400" id="stat-hands-won">0</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Taux de Victoire</span>
+            <span class="text-base sm:text-lg font-black text-blue-400" id="stat-win-rate">0%</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Plus Gros Pot Remporté</span>
+            <span class="text-base sm:text-lg font-black text-amber-300" id="stat-biggest-pot">0</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Meilleure Main</span>
+            <span class="text-xs sm:text-sm font-black text-yellow-300 truncate block" id="stat-best-hand">Aucune</span>
+          </div>
+          <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Tournois Gagnés</span>
+            <span class="text-base sm:text-lg font-black text-purple-400" id="stat-tourney-won">0 / 0</span>
+          </div>
         </div>
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Mains Gagnées</span>
-          <span class="text-lg font-black text-emerald-400" id="stat-hands-won">0</span>
-        </div>
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Taux de Victoire</span>
-          <span class="text-lg font-black text-blue-400" id="stat-win-rate">0%</span>
-        </div>
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Plus Gros Pot Remporté</span>
-          <span class="text-lg font-black text-amber-300" id="stat-biggest-pot">0</span>
-        </div>
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Meilleure Main</span>
-          <span class="text-sm font-black text-yellow-300 truncate block" id="stat-best-hand">Aucune</span>
-        </div>
-        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
-          <span class="text-[10px] text-slate-400 block">Tournois Gagnés</span>
-          <span class="text-lg font-black text-purple-400" id="stat-tourney-won">0 / 0</span>
+
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+          <span class="text-xs text-slate-400">Total des Gains Cumulés :</span>
+          <span class="text-sm font-black text-amber-300" id="stat-total-won">0 🪙</span>
         </div>
       </div>
 
-      <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
-        <span class="text-xs text-slate-400">Total des Gains Cumulés :</span>
-        <span class="text-sm font-black text-amber-300" id="stat-total-won">0 🪙</span>
+      <!-- CONTENU ONGLET 2 : HISTORIQUE DES 10 DERNIÈRES MAINS -->
+      <div id="stats-panel-hands" class="hidden flex-col overflow-y-auto space-y-2 pr-1 max-h-[380px]">
+        <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 mb-1">
+          <span>Résultat & Combinaison</span>
+          <span>Gain / Date</span>
+        </div>
+        <div id="stats-hands-list" class="space-y-2">
+          <!-- Injecté dynamiquement par JS -->
+        </div>
       </div>
+
+      <!-- CONTENU ONGLET 3 : CLASSEMENT TOP 10 MONDIAL -->
+      <div id="stats-panel-leaderboard" class="hidden flex-col overflow-y-auto space-y-2 pr-1 max-h-[380px]">
+        <div class="flex items-center justify-between text-[11px] text-slate-400 px-1 mb-1">
+          <span>Joueur</span>
+          <span>Fortune (Jetons)</span>
+        </div>
+        <div id="stats-leaderboard-list" class="space-y-1.5">
+          <!-- Injecté dynamiquement par JS -->
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -725,6 +924,9 @@
   <!-- =========================================================================
        6. SCRIPTS MODULAIRES (ORDRE STRICT DE DÉPENDANCE)
        ========================================================================= -->
+  <!-- SDK Supabase JS v2 & Client Cloud -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
   <script src="engine.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/storage.js"></script>
