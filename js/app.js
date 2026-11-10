@@ -366,6 +366,7 @@ class HikaPokerApp {
       this.runoutTimeouts = [];
 
       window.tableUI.clearEquities();
+      window.tableUI.clearWinnerShowcase();
       window.tableUI.lastBoardCards = [];
       if (window.soundFX) window.soundFX.playCardDeal();
 
@@ -639,12 +640,27 @@ class HikaPokerApp {
         const pObj = this.engine ? this.engine.getPlayer(w.id) : null;
         winnerName = pObj ? pObj.name : 'Vainqueur';
         handLabel = (w.hand && w.hand.label) || (result.showdown ? 'Meilleure main' : 'Adversaires couchés');
+
+        // Présenter les cartes gagnantes à côté de la suite du board sur la table
+        let winningHole = (w.hole && w.hole.length > 0) ? w.hole : null;
+        if (!winningHole && pObj && pObj.hole && pObj.hole.length > 0) {
+          winningHole = pObj.hole.map((c) => typeof c === 'string' ? c : (window.PokerEngine ? window.PokerEngine.cardToString(c) : c));
+        }
+        if (winningHole) {
+          window.tableUI.showWinnerShowcase(winnerName, winningHole, w.hand ? w.hand.label : '');
+        }
       } else {
         winnerName = winners.map((w) => {
           const pObj = this.engine ? this.engine.getPlayer(w.id) : null;
           return pObj ? pObj.name : 'Joueur';
         }).join(' & ');
         handLabel = 'Partage (' + (winners.map((w) => w.hand ? w.hand.label : '').filter(Boolean).join(' / ') || 'Split Pot') + ')';
+
+        // Pour un split pot, afficher la main gagnante
+        const firstWithHole = winners.find((w) => w.hole && w.hole.length > 0);
+        if (firstWithHole) {
+          window.tableUI.showWinnerShowcase(winnerName, firstWithHole.hole, 'Partage');
+        }
       }
 
       window.tableUI.showWinnerBanner(winnerName, handLabel, totalPot);
@@ -850,6 +866,7 @@ class HikaPokerApp {
 
     if (window.tableUI) {
       window.tableUI.clearEquities();
+      window.tableUI.clearWinnerShowcase();
       window.tableUI.stopTurnTimer();
     }
   }

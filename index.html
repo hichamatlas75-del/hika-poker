@@ -366,9 +366,24 @@
             <div id="side-pots-container" class="flex gap-1 mt-0.5 sm:mt-1"></div>
           </div>
 
-          <!-- Cartes du Board (Flop, Turn, River) -->
-          <div id="community-cards" class="flex items-center gap-1 sm:gap-1.5 md:gap-2.5">
-            <!-- Généré dynamiquement avec animation 3D -->
+          <!-- Zone Centrale : Cartes du Board + Cartes Gagnantes à côté -->
+          <div id="board-center-wrapper" class="flex items-center justify-center gap-1.5 sm:gap-2.5 md:gap-3 transition-all duration-300">
+            <!-- Cartes du Board (Flop, Turn, River) -->
+            <div id="community-cards" class="flex items-center gap-1 sm:gap-1.5 md:gap-2">
+              <!-- Généré dynamiquement avec animation 3D -->
+            </div>
+
+            <!-- Cartes du Vainqueur présentées à côté de la suite du board au dénouement -->
+            <div id="winner-showcase-container" class="hidden items-center gap-1 sm:gap-1.5 pl-1.5 sm:pl-2.5 border-l-2 border-amber-400/80 animate-fade-in">
+              <div class="flex flex-col items-center">
+                <span id="winner-showcase-label" class="text-[8px] sm:text-[9px] font-black uppercase text-amber-300 tracking-wider bg-black/75 px-1.5 py-0.5 rounded border border-amber-400/50 mb-0.5 whitespace-nowrap shadow-md">
+                  👑 GAGNANT
+                </span>
+                <div id="winner-showcase-cards" class="flex items-center gap-1">
+                  <!-- Rendu des cartes privées gagnantes -->
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Bannière de Victoire au Showdown -->

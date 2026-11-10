@@ -480,13 +480,55 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   }
 }
 
-/* 3. Optimisation Mobile Horizontal (Paysage) */
-@media (orientation: landscape) and (max-height: 550px) {
+/* ==========================================================================
+   PRÉSENTATION DES CARTES DU VAINQUEUR À CÔTÉ DU BOARD
+   ========================================================================== */
+#winner-showcase-container {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(251, 191, 36, 0.85);
+  box-shadow: -4px 0 12px -2px rgba(251, 191, 36, 0.4);
+}
+
+#winner-showcase-container:not(.hidden) {
+  display: flex !important;
+}
+
+#winner-showcase-label {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 480px) and (orientation: portrait) {
+  #winner-showcase-container {
+    padding-left: 4px !important;
+    gap: 4px !important;
+  }
+  #community-cards {
+    gap: 3px !important;
+  }
+  #community-cards .poker-card-board,
+  #winner-showcase-container .poker-card-board {
+    width: 32px !important;
+    height: 46px !important;
+  }
+  #winner-showcase-label {
+    font-size: 7px !important;
+    padding: 1px 3px !important;
+  }
+}
+
+/* ==========================================================================
+   3. OPTIMISATION MOBILE HORIZONTAL (PAYSAGE / LANDSCAPE)
+   Zéro chevauchement : La main du joueur est compacte et ne cache jamais la table
+   ========================================================================== */
+@media (orientation: landscape) and (max-height: 650px) {
   /* Header ultra-compact */
   header {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    height: 36px !important;
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    height: 32px !important;
   }
   header .font-casino {
     font-size: 13px !important;
@@ -495,8 +537,8 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   /* Section de la table occupe 100% de la hauteur sans scroll vertical */
   #table-view {
     padding: 2px 6px !important;
-    height: calc(100dvh - 36px) !important;
-    max-height: calc(100dvh - 36px) !important;
+    height: calc(100dvh - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
@@ -505,7 +547,8 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 
   #table-hud-bar {
     padding: 0 4px !important;
-    height: 20px !important;
+    height: 18px !important;
+    margin-bottom: 0 !important;
   }
   #current-table-title {
     font-size: 11px !important;
@@ -513,13 +556,17 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 
   #poker-table-wrapper {
     min-height: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    margin: 0 auto !important;
     flex: 1 1 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
   }
 
   #poker-table {
-    height: min(230px, calc(100dvh - 120px)) !important;
+    height: clamp(230px, calc(100dvh - 86px), 330px) !important;
+    max-width: 96% !important;
     border-radius: 120px !important;
     border-width: 6px !important;
   }
@@ -532,19 +579,99 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     inset: 12px !important;
   }
 
-  /* Sièges resserrés en hauteur pour ovale paysage */
+  /* ÉLÉVATION CRUCIALE DU CENTRE DE LA TABLE (évite tout chevauchement avec la main du joueur) */
+  .center-table-group {
+    top: 36% !important;
+    transform: translate(-50%, -36%) !important;
+  }
+
+  #table-pot-container {
+    margin-bottom: 2px !important;
+  }
+
+  /* Cartes du Board en Paysage */
+  .poker-card-board {
+    width: 36px !important;
+    height: 50px !important;
+  }
+  .poker-card-board .card-front {
+    padding: 2px 3px !important;
+  }
+  .poker-card-board .card-front span {
+    font-size: 10px !important;
+  }
+  .poker-card-board .card-front div:nth-child(2) {
+    font-size: 14px !important;
+  }
+
+  /* Cartes gagnantes à côté de la suite du board en Paysage */
+  #winner-showcase-container {
+    padding-left: 6px !important;
+    border-left-width: 2px !important;
+  }
+  #winner-showcase-label {
+    font-size: 8px !important;
+    padding: 1px 4px !important;
+    margin-bottom: 1px !important;
+  }
+
+  /* JOUEUR HUMAIN (SIÈGE 0) : COMPACT ET COLLÉ AU BORD INFÉRIEUR */
   .seat-pos-0 {
-    bottom: 2px !important;
+    bottom: -6px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
+    z-index: 25 !important;
   }
+
+  .hero-seat-pod {
+    padding: 2px 6px !important;
+    border-radius: 12px !important;
+    max-height: 54px !important;
+    gap: 6px !important;
+  }
+
+  .hero-seat-pod .rounded-full {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .hero-seat-pod .rounded-full span {
+    font-size: 16px !important;
+  }
+
+  .hero-seat-pod .truncate {
+    font-size: 9px !important;
+    max-width: 60px !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Cartes privées du joueur humain en Paysage : compactes pour ne jamais cacher le tapis */
+  .poker-card-human {
+    width: 36px !important;
+    height: 50px !important;
+  }
+  .poker-card-human .card-front {
+    padding: 2px 3px !important;
+  }
+  .poker-card-human .card-front span {
+    font-size: 10px !important;
+  }
+  .poker-card-human .card-front div:nth-child(2) {
+    font-size: 14px !important;
+  }
+  .hero-hole-cards {
+    margin-left: -4px !important;
+  }
+
+  /* BOTS : POSITIONS ET TAILLES OPTIMISÉES DANS LES COURBURES DE L'OVALE */
   .seat-pos-1 {
-    bottom: 10% !important;
-    left: 5% !important;
+    bottom: 12% !important;
+    left: 3% !important;
   }
   .seat-pos-2 {
-    top: 10% !important;
-    left: 5% !important;
+    top: 14% !important;
+    left: 3% !important;
   }
   .seat-pos-3 {
     top: 2px !important;
@@ -552,26 +679,52 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     transform: translateX(-50%) !important;
   }
   .seat-pos-4 {
-    top: 10% !important;
-    right: 5% !important;
+    top: 14% !important;
+    right: 3% !important;
   }
   .seat-pos-5 {
-    bottom: 10% !important;
-    right: 5% !important;
+    bottom: 12% !important;
+    right: 3% !important;
   }
 
-  /* Contrôles compacts en bas */
+  .bot-seat-pod .relative.rounded-full {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+  }
+  .bot-seat-pod .relative.rounded-full span {
+    font-size: 15px !important;
+  }
+
+  .poker-card-bot {
+    width: 20px !important;
+    height: 28px !important;
+  }
+  .bot-cards-wrapper {
+    top: -14px !important;
+  }
+
+  .bot-seat-pod .mt-0\.5 {
+    padding: 1px 4px !important;
+  }
+  .bot-seat-pod .truncate {
+    font-size: 8px !important;
+    max-width: 50px !important;
+  }
+
+  /* CONTRÔLES COMPACTS EN BAS */
   #action-bar-container {
     padding-bottom: 2px !important;
   }
   #action-bar {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
-    gap: 6px !important;
+    gap: 4px !important;
   }
   .btn-zynga {
-    padding: 6px 6px !important;
-    font-size: 11px !important;
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    min-height: 30px !important;
     border-radius: 8px !important;
   }
   .btn-zynga span:last-child {
@@ -579,17 +732,24 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   }
 
   #pre-action-bar {
-    padding: 3px 8px !important;
-    font-size: 10px !important;
+    padding: 2px 6px !important;
+    font-size: 9px !important;
   }
 
   #my-hand-badge-container {
-    margin-bottom: 2px !important;
-    padding: 1px 8px !important;
+    margin-bottom: 1px !important;
+    padding: 1px 6px !important;
   }
   #my-hand-rank-text {
-    font-size: 10px !important;
+    font-size: 9px !important;
+  }
+
+  #raise-slider-container {
+    bottom: 38px !important;
+    padding: 6px 10px !important;
+    max-width: 360px !important;
   }
 }
+
 
 

@@ -523,6 +523,38 @@ class TableUI {
       banner.classList.add('hidden');
     }, 4500);
   }
+
+  // Présentation des cartes gagnantes à côté de la suite du board sur la table
+  showWinnerShowcase(winnerName, holeCards = [], winningCombination = '') {
+    const container = document.getElementById('winner-showcase-container');
+    const labelEl = document.getElementById('winner-showcase-label');
+    const cardsEl = document.getElementById('winner-showcase-cards');
+    if (!container || !cardsEl || !holeCards || holeCards.length === 0) return;
+
+    if (labelEl) {
+      const desc = winningCombination ? `👑 ${winnerName} (${winningCombination})` : `👑 ${winnerName}`;
+      labelEl.textContent = desc;
+    }
+
+    cardsEl.innerHTML = holeCards.map((cStr) => {
+      return this.createCardHTML(cStr, true, true, 'board');
+    }).join('');
+
+    container.classList.remove('hidden');
+    container.classList.add('flex');
+  }
+
+  clearWinnerShowcase() {
+    const container = document.getElementById('winner-showcase-container');
+    const cardsEl = document.getElementById('winner-showcase-cards');
+    if (container) {
+      container.classList.add('hidden');
+      container.classList.remove('flex');
+    }
+    if (cardsEl) {
+      cardsEl.innerHTML = '';
+    }
+  }
 }
 
 window.tableUI = new TableUI();
