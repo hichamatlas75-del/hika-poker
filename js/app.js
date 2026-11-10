@@ -33,6 +33,11 @@ class HikaPokerApp {
     this.nextHandStartTime = null;
     this.nextHandDuration = 0;
     this.nextHandRemaining = 0;
+
+    // Gestion de Recharge de Jetons & Notifications Casino
+    this.pendingRebuyAmount = 0;
+    this.selectedRebuyAmount = 0;
+    this.toastTimeout = null;
   }
 
   init() {
@@ -175,6 +180,41 @@ class HikaPokerApp {
       });
     }
 
+    // Modal Rebuy / Recharge Casino
+    const btnCloseRebuy = document.getElementById('rebuy-close-btn');
+    if (btnCloseRebuy) {
+      btnCloseRebuy.addEventListener('click', () => this.closeRebuyModal());
+    }
+
+    const btnCancelRebuy = document.getElementById('btn-cancel-rebuy-modal');
+    if (btnCancelRebuy) {
+      btnCancelRebuy.addEventListener('click', () => this.closeRebuyModal());
+    }
+
+    const btnConfirmRebuy = document.getElementById('btn-confirm-rebuy-modal');
+    if (btnConfirmRebuy) {
+      btnConfirmRebuy.addEventListener('click', () => this.confirmRebuy());
+    }
+
+    const btnRebuyBonus = document.getElementById('btn-rebuy-free-bonus');
+    if (btnRebuyBonus) {
+      btnRebuyBonus.addEventListener('click', () => {
+        window.storageManager.addChips(10000);
+        this.updateUserHeader();
+        if (window.soundFX) window.soundFX.playChipsStack();
+        this.showToast("Cadeau VIP de +10,000 jetons crédité !", "🎁");
+        this.openRebuyModal();
+      });
+    }
+
+    const btnRebuyWheel = document.getElementById('btn-rebuy-open-wheel');
+    if (btnRebuyWheel) {
+      btnRebuyWheel.addEventListener('click', () => {
+        this.closeRebuyModal();
+        if (window.luckyWheel) window.luckyWheel.open();
+      });
+    }
+
     // Fermer le modal de résultat de tournoi
     const btnCloseTourneyRes = document.getElementById('btn-close-tourney-result');
     if (btnCloseTourneyRes) {
@@ -253,13 +293,9 @@ class HikaPokerApp {
 
     const profile = window.storageManager.getProfile();
     if (profile.chips < config.buyIn) {
-      // Proposer un bonus immédiat si pas assez de jetons
-      if (confirm(`Vous avez besoin d'au moins ${config.buyIn.toLocaleString()} jetons pour rejoindre cette table. Souhaitez-vous recharger votre solde gratuitement (+10,000 jetons) ?`)) {
-        window.storageManager.addChips(10000);
-        this.updateUserHeader();
-      } else {
-        return;
-      }
+      this.openRebuyModal();
+      this.showToast(`Solde insuffisant pour cette table (${config.buyIn.toLocaleString()} 🪙 requis)`, "⚠️");
+      return;
     }
 
     this.currentTableConfig = config;
@@ -320,12 +356,9 @@ class HikaPokerApp {
     const profile = window.storageManager.getProfile();
 
     if (profile.chips < tourneyCfg.buyIn) {
-      if (confirm(`Buy-in du tournoi : ${tourneyCfg.buyIn.toLocaleString()} jetons. Souhaitez-vous recharger votre solde gratuitement (+10,000 jetons) ?`)) {
-        window.storageManager.addChips(10000);
-        this.updateUserHeader();
-      } else {
-        return;
-      }
+      this.openRebuyModal();
+      this.showToast(`Solde insuffisant pour le tournoi (${tourneyCfg.buyIn.toLocaleString()} 🪙 requis)`, "⚠️");
+      return;
     }
 
     // Déduire le buy-in
@@ -739,6 +772,7 @@ class HikaPokerApp {
 
       this.isHandRunning = false;
       this.handleHandOutcome(result);
+      this.applyPendingRebuy();
 
       // Pause de 3.5 secondes pour admirer le dénouement, puis main suivante
       this.nextHandDuration = 3500;
@@ -822,6 +856,7 @@ class HikaPokerApp {
 
       this.isRunoutPending = false;
       this.isHandRunning = false;
+      this.applyPendingRebuy();
 
       // Main suivante après 3.8s
       this.nextHandDuration = 3800;
@@ -1019,70 +1054,213 @@ class HikaPokerApp {
   }
 
   promptRebuy() {
-    // 1. Si on est dans le Lobby (hors partie)
+    this.openRebuyModal();
+  }
+
+  openRebuyModal() {
+    if (window.soundFX) window.soundFX.playBtnClick();
+
+    const profile = window.storageManager.getProfile();
+    const modal = document.getElementById('rebuy-modal');
+    const accountChipsEl = document.getElementById('rebuy-account-chips');
+    const tableStackBox = document.getElementById('rebuy-table-stack-box');
+    const tableStackEl = document.getElementById('rebuy-table-stack');
+    const statusNotice = document.getElementById('rebuy-status-notice');
+    const optionsContainer = document.getElementById('rebuy-options-container');
+    const bonusContainer = document.getElementById('rebuy-bonus-container');
+    const amountButtons = document.getElementById('rebuy-amount-buttons');
+    const confirmBtn = document.getElementById('btn-confirm-rebuy-modal');
+    const confirmLabel = document.getElementById('btn-confirm-rebuy-label');
+
+    if (!modal) return;
+
+    if (accountChipsEl) accountChipsEl.textContent = profile.chips.toLocaleString();
+
+    // 1. Si on est dans le Lobby (hors table de jeu)
     if (!this.engine) {
-      const profile = window.storageManager.getProfile();
-      if (profile.chips < 1000) {
-        if (confirm("Votre solde est faible ! Voulez-vous recevoir un cadeau de 10,000 jetons gratuits ?")) {
-          window.storageManager.addChips(10000);
-          this.updateUserHeader();
-        }
-      } else {
-        if (window.luckyWheel) window.luckyWheel.open();
+      if (tableStackBox) tableStackBox.classList.add('hidden');
+      if (optionsContainer) optionsContainer.classList.add('hidden');
+      if (statusNotice) {
+        statusNotice.classList.remove('hidden', 'bg-yellow-950/80', 'border-yellow-500/40', 'text-yellow-200', 'bg-amber-950/70', 'border-amber-500/40', 'text-amber-300');
+        statusNotice.classList.add('bg-blue-950/70', 'border', 'border-blue-500/40', 'text-blue-300');
+        statusNotice.innerHTML = `ℹ️ Vous êtes dans le Lobby. Rejoignez une table de Cash Game pour engager vos jetons.`;
       }
+      if (bonusContainer) bonusContainer.classList.remove('hidden');
+      if (confirmBtn) confirmBtn.classList.add('hidden');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
       return;
     }
 
     // 2. Si on est en mode Tournoi
     if (this.gameMode === 'tournament') {
-      alert("Les rachats de jetons (rebuys) sont interdits en mode Tournoi Sit & Go éliminatoire !");
+      if (tableStackBox) tableStackBox.classList.remove('hidden');
+      const humanP = this.engine.getPlayer(this.humanId);
+      if (tableStackEl) tableStackEl.textContent = humanP ? humanP.chips.toLocaleString() : '0';
+
+      if (optionsContainer) optionsContainer.classList.add('hidden');
+      if (bonusContainer) bonusContainer.classList.add('hidden');
+      if (statusNotice) {
+        statusNotice.classList.remove('hidden', 'bg-blue-950/70', 'border-blue-500/40', 'text-blue-300', 'bg-yellow-950/80', 'border-yellow-500/40', 'text-yellow-200');
+        statusNotice.classList.add('bg-amber-950/70', 'border', 'border-amber-500/40', 'text-amber-300');
+        statusNotice.innerHTML = `🏆 <b>Mode Tournoi Sit & Go :</b> Les rachats de jetons sont désactivés pour préserver l'équité sportive éliminatoire.`;
+      }
+      if (confirmBtn) confirmBtn.classList.add('hidden');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
       return;
     }
 
-    // 3. Si une main est en cours
+    // 3. En mode Cash Game à la table
+    if (tableStackBox) tableStackBox.classList.remove('hidden');
+    if (optionsContainer) optionsContainer.classList.remove('hidden');
+    if (confirmBtn) confirmBtn.classList.remove('hidden');
+
+    const humanP = this.engine.getPlayer(this.humanId);
+    const currentStack = humanP ? humanP.chips : 0;
+    if (tableStackEl) tableStackEl.textContent = currentStack.toLocaleString();
+
+    const baseBuyIn = this.currentTableConfig ? this.currentTableConfig.buyIn : 1000;
+    const options = [
+      { label: '1 Cave', amount: baseBuyIn },
+      { label: '2 Caves', amount: baseBuyIn * 2 },
+      { label: '5 Caves', amount: baseBuyIn * 5 }
+    ];
+
+    this.selectedRebuyAmount = baseBuyIn;
+
+    if (amountButtons) {
+      amountButtons.innerHTML = options.map((opt, idx) => `
+        <button type="button" data-amount="${opt.amount}" class="btn-rebuy-opt p-2.5 rounded-xl border text-center transition-all ${idx === 0 ? 'bg-amber-500/25 border-amber-400 text-amber-300 ring-2 ring-amber-400/50 font-black' : 'bg-slate-950/80 border-slate-700 text-slate-300 hover:border-slate-500 font-bold'}">
+          <span class="text-[10px] block opacity-80">${opt.label}</span>
+          <span class="text-xs font-black block">${opt.amount.toLocaleString()} 🪙</span>
+        </button>
+      `).join('');
+
+      // Attacher l'écouteur de sélection
+      amountButtons.querySelectorAll('.btn-rebuy-opt').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const amt = parseInt(e.currentTarget.dataset.amount, 10);
+          this.selectedRebuyAmount = amt;
+          amountButtons.querySelectorAll('.btn-rebuy-opt').forEach((b) => {
+            b.classList.remove('bg-amber-500/25', 'border-amber-400', 'text-amber-300', 'ring-2', 'ring-amber-400/50', 'font-black');
+            b.classList.add('bg-slate-950/80', 'border-slate-700', 'text-slate-300', 'font-bold');
+          });
+          e.currentTarget.classList.remove('bg-slate-950/80', 'border-slate-700', 'text-slate-300', 'font-bold');
+          e.currentTarget.classList.add('bg-amber-500/25', 'border-amber-400', 'text-amber-300', 'ring-2', 'ring-amber-400/50', 'font-black');
+        });
+      });
+    }
+
+    // État de la main
     if (this.isHandRunning) {
-      alert("Impossible de recharger vos jetons pendant une main en cours. Attendez la fin de la main.");
-      return;
+      if (statusNotice) {
+        statusNotice.classList.remove('hidden', 'bg-blue-950/70', 'border-blue-500/40', 'text-blue-300', 'bg-amber-950/70', 'border-amber-500/40', 'text-amber-300');
+        statusNotice.classList.add('bg-yellow-950/80', 'border', 'border-yellow-500/40', 'text-yellow-200');
+        statusNotice.innerHTML = `⏳ <b>Main en cours :</b> Votre recharge sera créditée automatiquement sur votre tapis dès la fin de ce coup !`;
+      }
+      if (confirmLabel) confirmLabel.textContent = 'PROGRAMMER POUR LE PROCHAIN COUP';
+    } else {
+      if (statusNotice) {
+        statusNotice.classList.add('hidden');
+      }
+      if (confirmLabel) confirmLabel.textContent = 'RECHARGER LE TAPIS IMMÉDIATEMENT';
     }
 
-    // 4. En Cash Game hors main
-    const buyIn = this.currentTableConfig ? this.currentTableConfig.buyIn : 2000;
+    // Si le solde en banque est insuffisant pour la cave
+    if (profile.chips < baseBuyIn) {
+      if (bonusContainer) bonusContainer.classList.remove('hidden');
+    } else {
+      if (bonusContainer) bonusContainer.classList.add('hidden');
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  closeRebuyModal() {
+    const modal = document.getElementById('rebuy-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  confirmRebuy() {
+    const buyIn = this.selectedRebuyAmount || (this.currentTableConfig ? this.currentTableConfig.buyIn : 1000);
     const profile = window.storageManager.getProfile();
 
-    if (profile.chips >= buyIn) {
-      if (confirm(`Voulez-vous recharger votre stack de table avec ${buyIn.toLocaleString()} jetons de votre compte ?`)) {
-        // Sécurité : vérifier d'abord que le moteur accepte le rachat AVANT de débiter
-        const res = this.engine.rebuy(this.humanId, buyIn);
-        if (res.ok) {
-          window.storageManager.addChips(-buyIn);
-          this.updateUserHeader();
-          if (this.engine.canStartHand()) {
-            this.startNextHand();
-          }
-        } else {
-          alert('Impossible de recharger : ' + res.message);
-        }
+    if (profile.chips < buyIn) {
+      this.showToast("Solde insuffisant en banque ! Récupérez vos jetons gratuits.", "⚠️");
+      const bonusContainer = document.getElementById('rebuy-bonus-container');
+      if (bonusContainer) bonusContainer.classList.remove('hidden');
+      return;
+    }
+
+    // Si une main est en cours : programmer la recharge pour la fin de la main
+    if (this.isHandRunning) {
+      this.pendingRebuyAmount = buyIn;
+      this.closeRebuyModal();
+      if (window.soundFX) window.soundFX.playBtnClick();
+      this.showToast(`Recharge de ${buyIn.toLocaleString()} 🪙 programmée pour la fin de la main !`, "⏳");
+      return;
+    }
+
+    // Recharger immédiatement
+    const res = this.engine.rebuy(this.humanId, buyIn);
+    if (res.ok) {
+      window.storageManager.addChips(-buyIn);
+      this.updateUserHeader();
+      const state = this.engine.getState(this.humanId);
+      window.tableUI.renderSeats(state, this.humanId, this.winningCards);
+      this.closeRebuyModal();
+      if (window.soundFX) window.soundFX.playChipsStack();
+      this.showToast(`Stack rechargé : +${buyIn.toLocaleString()} 🪙 !`, "🎰");
+
+      if (this.engine.canStartHand()) {
+        this.startNextHand();
       }
     } else {
-      if (profile.chips < 1000) {
-        if (confirm("Votre solde de compte est épuisé ! Voulez-vous recevoir un cadeau de bienvenue de 10,000 jetons gratuits ?")) {
-          window.storageManager.addChips(10000);
+      this.showToast(res.message || "Impossible de recharger.", "⚠️");
+    }
+  }
+
+  applyPendingRebuy() {
+    if (this.pendingRebuyAmount > 0 && this.engine) {
+      const pendingAmt = this.pendingRebuyAmount;
+      this.pendingRebuyAmount = 0;
+      const profile = window.storageManager.getProfile();
+      if (profile.chips >= pendingAmt) {
+        const res = this.engine.rebuy(this.humanId, pendingAmt);
+        if (res.ok) {
+          window.storageManager.addChips(-pendingAmt);
           this.updateUserHeader();
-          const res = this.engine.rebuy(this.humanId, buyIn);
-          if (res.ok) {
-            window.storageManager.addChips(-buyIn);
-            this.updateUserHeader();
-            if (this.engine.canStartHand()) {
-              this.startNextHand();
-            }
-          }
-        }
-      } else {
-        if (confirm("Jetons insuffisants sur votre compte principal pour cette cave. Tentez votre chance à la Lucky Wheel pour recharger ?")) {
-          if (window.luckyWheel) window.luckyWheel.open();
+          const state = this.engine.getState(this.humanId);
+          window.tableUI.renderSeats(state, this.humanId);
+          if (window.soundFX) window.soundFX.playChipsStack();
+          this.showToast(`Recharge automatique appliquée : +${pendingAmt.toLocaleString()} 🪙 !`, "🎰");
         }
       }
     }
+  }
+
+  showToast(msg, icon = '🪙', durationMs = 2600) {
+    const toast = document.getElementById('casino-toast');
+    const toastMsg = document.getElementById('casino-toast-msg');
+    const toastIcon = document.getElementById('casino-toast-icon');
+    if (!toast) return;
+
+    if (toastMsg) toastMsg.textContent = msg;
+    if (toastIcon) toastIcon.textContent = icon;
+
+    toast.classList.remove('opacity-0', '-translate-y-20', 'pointer-events-none');
+    toast.classList.add('opacity-100', 'translate-y-0');
+
+    if (this.toastTimeout) clearTimeout(this.toastTimeout);
+    this.toastTimeout = setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', '-translate-y-20', 'pointer-events-none');
+    }, durationMs);
   }
 
   stopAllTimers() {

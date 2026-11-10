@@ -634,6 +634,100 @@
     </div>
   </div>
 
+  <!-- Modal / Bandeau de Recharge de Jetons (Style Casino Zynga) -->
+  <div id="rebuy-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl relative flex flex-col overflow-hidden animate-fade-in">
+      <!-- Glows d'arrière-plan -->
+      <div class="absolute -top-14 -right-14 w-36 h-36 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-14 -left-14 w-36 h-36 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Bouton Fermer -->
+      <button id="rebuy-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors">
+        ✕
+      </button>
+
+      <!-- Titre & Icône -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
+          🪙
+        </div>
+        <div>
+          <h3 class="font-casino text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400">
+            BANQUE DU CASINO
+          </h3>
+          <p class="text-[11px] sm:text-xs text-slate-400">Recharge de jetons & Gestion de cave</p>
+        </div>
+      </div>
+
+      <!-- Résumé des Soldes (Compte vs Table) -->
+      <div class="grid grid-cols-2 gap-2.5 mb-4 text-xs">
+        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+          <span class="text-[10px] font-bold text-slate-400 block mb-0.5">Solde Compte Principal</span>
+          <div class="flex items-center gap-1">
+            <span class="text-amber-400">🪙</span>
+            <span class="text-sm sm:text-base font-black text-amber-300" id="rebuy-account-chips">20,000</span>
+          </div>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800" id="rebuy-table-stack-box">
+          <span class="text-[10px] font-bold text-slate-400 block mb-0.5">Tapis Actuel à la Table</span>
+          <div class="flex items-center gap-1">
+            <span class="text-emerald-400">🎰</span>
+            <span class="text-sm sm:text-base font-black text-emerald-400" id="rebuy-table-stack">1,000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message d'état contextuel (Main en cours, Tournoi, ou Info) -->
+      <div id="rebuy-status-notice" class="hidden mb-4 p-3 rounded-xl text-xs font-semibold flex items-center gap-2"></div>
+
+      <!-- Sélection du Montant à Recharger (Options rapides) -->
+      <div id="rebuy-options-container" class="space-y-2 mb-4">
+        <span class="text-[11px] font-bold text-slate-400 block">Choisissez le montant de votre recharge :</span>
+        <div class="grid grid-cols-3 gap-2" id="rebuy-amount-buttons">
+          <!-- Injecté dynamiquement par JS selon la table -->
+        </div>
+      </div>
+
+      <!-- Section Bonus Gratuits & Roue (Si solde faible) -->
+      <div id="rebuy-bonus-container" class="hidden space-y-2 mb-4 p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-xs font-black text-amber-300 block">Solde en banque faible !</span>
+            <span class="text-[10px] text-slate-400">Recevez un cadeau VIP pour continuer à jouer.</span>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-rebuy-free-bonus" class="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-[11px] shadow transition-transform active:scale-95 flex items-center justify-center gap-1">
+            <span>🎁</span>
+            <span>+10,000 GRATUITS</span>
+          </button>
+          <button id="btn-rebuy-open-wheel" class="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-black text-[11px] shadow transition-transform active:scale-95 flex items-center justify-center gap-1">
+            <span>🎡</span>
+            <span>LUCKY WHEEL</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Boutons d'Action Principaux -->
+      <div class="flex flex-col gap-2">
+        <button id="btn-confirm-rebuy-modal" class="w-full py-3 rounded-xl font-black text-xs sm:text-sm tracking-wide uppercase bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2">
+          <span>🪙</span>
+          <span id="btn-confirm-rebuy-label">CONFIRMER LA RECHARGE</span>
+        </button>
+        <button id="btn-cancel-rebuy-modal" class="w-full py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-colors">
+          Annuler
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Bandeau Toast Notification Casino (Top Floating Banner) -->
+  <div id="casino-toast" class="fixed top-14 left-1/2 -translate-x-1/2 z-50 transform -translate-y-20 opacity-0 pointer-events-none transition-all duration-300 max-w-sm w-[90%] sm:w-auto px-4 py-2.5 rounded-2xl bg-slate-900/95 border border-amber-500/50 text-amber-200 text-xs sm:text-sm font-bold shadow-2xl flex items-center justify-center gap-2 backdrop-blur-md">
+    <span id="casino-toast-icon">🪙</span>
+    <span id="casino-toast-msg">Recharge effectuée avec succès !</span>
+  </div>
+
   <!-- Canvas Confettis Overlay -->
   <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
 
