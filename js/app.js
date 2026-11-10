@@ -413,6 +413,11 @@ class HikaPokerApp {
         }
       }
 
+      // Son dramatique All-In quand un adversaire fait tapis
+      if (e.action === 'allin' && e.playerId !== this.humanId && window.soundFX) {
+        window.soundFX.playAllIn();
+      }
+
       const state = this.engine.getState(this.humanId);
       window.tableUI.renderSeats(state, this.humanId, this.winningCards);
       window.tableUI.renderPot(state.pot, state.pots);
@@ -682,6 +687,8 @@ class HikaPokerApp {
 
     if (isHuman) {
       // Tour du joueur humain
+      if (window.soundFX) window.soundFX.playMyTurn();
+
       const legal = this.engine.getLegalActions(this.humanId);
       const preActionExecuted = window.playerControlsUI.updateState(legal, true, this.engine.blinds.bigBlind);
 

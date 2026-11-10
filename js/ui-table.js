@@ -105,7 +105,7 @@ class TableUI {
         setTimeout(() => {
           const inner = cardEl.querySelector('.card-inner');
           if (inner) inner.classList.add('flipped');
-          if (window.soundFX) window.soundFX.playCardDeal();
+          if (window.soundFX) window.soundFX.playCardFlip();
         }, idx * 120 + 50);
       }
     });

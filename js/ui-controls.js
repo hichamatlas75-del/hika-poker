@@ -72,7 +72,7 @@ class PlayerControlsUI {
     const btnAllIn = document.getElementById('btn-all-in');
     if (btnAllIn) {
       btnAllIn.addEventListener('click', () => {
-        if (window.soundFX) window.soundFX.playChipsStack();
+        if (window.soundFX) window.soundFX.playAllIn();
         this.emitAction({ type: 'allin' });
       });
     }
