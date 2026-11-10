@@ -3,9 +3,9 @@
  * Gère la connexion, l'inscription par pseudo et la synchronisation cloud.
  */
 
-// Configuration par défaut (remplacer avec vos identifiants Supabase ou configurer depuis le modal du jeu)
-const DEFAULT_SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+// Configuration par défaut connectée au projet Supabase de l'utilisateur
+const DEFAULT_SUPABASE_URL = 'https://bxgguavmuiefthqmzygy.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4Z2d1YXZtdWllZnRocW16eWd5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNzYyNzIsImV4cCI6MjEwNDk1MjI3Mn0.7aGDBXzzMApGkxXuDDcwMJXxPlPsG8LEYb5WIcA--00';
 
 class HikaSupabaseClient {
   constructor() {
@@ -14,8 +14,11 @@ class HikaSupabaseClient {
     this.isConfigured = false;
     this.authListeners = [];
 
-    this.url = localStorage.getItem('hika_supabase_url') || DEFAULT_SUPABASE_URL;
-    this.anonKey = localStorage.getItem('hika_supabase_key') || DEFAULT_SUPABASE_ANON_KEY;
+    const savedUrl = (typeof localStorage !== 'undefined') ? localStorage.getItem('hika_supabase_url') : null;
+    const savedKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('hika_supabase_key') : null;
+
+    this.url = (savedUrl && !savedUrl.includes('YOUR_PROJECT_ID')) ? savedUrl : DEFAULT_SUPABASE_URL;
+    this.anonKey = (savedKey && !savedKey.includes('YOUR_SUPABASE_ANON_KEY')) ? savedKey : DEFAULT_SUPABASE_ANON_KEY;
 
     this.setupClient();
   }
@@ -98,7 +101,7 @@ class HikaSupabaseClient {
 
   formatEmail(username) {
     const clean = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-    return `${clean}@hikapoker.app`;
+    return `${clean}@hikapoker.com`;
   }
 
   // Inscription par Pseudo + Mot de passe + Choix d'avatar
@@ -130,7 +133,12 @@ class HikaSupabaseClient {
       }
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      if (authError.message && (authError.message.includes('rate limit') || authError.status === 429)) {
+        throw new Error("Limite d'envoi d'emails Supabase atteinte. Pour autoriser la connexion directe sans email, désactivez 'Confirm email' dans Supabase Dashboard > Authentication > Providers > Email.");
+      }
+      throw authError;
+    }
 
     const user = authData.user;
     if (!user) throw new Error("Échec de la création du compte.");
@@ -159,7 +167,7 @@ class HikaSupabaseClient {
       .upsert(initialProfile, { onConflict: 'id' });
 
     if (profileError) {
-      console.warn('[Hika-Supabase] Avertissement création profil:', profileError);
+      console.warn('[Hika-Supabase] Avertissement création profil (avez-vous exécuté supabase-schema.sql ?) :', profileError);
     }
 
     // 3. Charger le profil dans le cache local
@@ -194,6 +202,9 @@ class HikaSupabaseClient {
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
         throw new Error("Pseudo ou mot de passe incorrect.");
+      }
+      if (error.message.includes('Email not confirmed') || error.error_code === 'email_not_confirmed') {
+        throw new Error("Compte en attente de confirmation. Désactivez l'option 'Confirm email' dans Supabase Dashboard > Authentication > Providers > Email pour une connexion immédiate sans email.");
       }
       throw error;
     }
