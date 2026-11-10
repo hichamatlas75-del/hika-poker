@@ -1,9 +1,27 @@
 /**
- * Hika-Poker - Moteur Audio Haute Définition (HD Studio Casino)
- * Synthèse acoustique modale physique (Jetons céramique Paulson 14g, cartes plastifiées KEM, table feutrée)
- * Reverb algorithmique de salle VIP, compresseur multibande Master, spatialisation stéréo & haptique.
- * Zéro fichier MP3 externe lourd : 100% autonome, ultra-rapide et instantané en Web Audio API Pro.
+ * Hika-Poker - Moteur Audio Zynga Poker Clone HD
+ * Dossier officiel d'assets audio réels : assets/audio/*.wav
+ * Combine le chargement ultra-rapide des vrais fichiers audio WAV haute définition (cartes, jetons, double-knock, cloche)
+ * avec un système de secours (fallback) de synthèse Web Audio API pour garantir 100% de disponibilité audio.
  */
+
+const AUDIO_ASSETS = {
+  card_deal: 'assets/audio/card_deal.wav',
+  card_flip: 'assets/audio/card_flip.wav',
+  card_fold: 'assets/audio/card_fold.wav',
+  chip_bet: 'assets/audio/chip_bet.wav',
+  chips_stack: 'assets/audio/chips_stack.wav',
+  all_in: 'assets/audio/all_in.wav',
+  check: 'assets/audio/check.wav',
+  my_turn: 'assets/audio/my_turn.wav',
+  other_turn: 'assets/audio/other_turn.wav',
+  timer_tick: 'assets/audio/timer_tick.wav',
+  timer_urgent: 'assets/audio/timer_urgent.wav',
+  win: 'assets/audio/win.wav',
+  applause: 'assets/audio/applause.wav',
+  wheel_click: 'assets/audio/wheel_click.wav',
+  button_click: 'assets/audio/button_click.wav'
+};
 
 class SoundFX {
   constructor() {
@@ -12,16 +30,23 @@ class SoundFX {
     this.compressor = null;
     this.reverbNode = null;
     this.reverbGain = null;
-    this.dryGain = null;
     this.pinkNoiseBuffer = null;
     this.whiteNoiseBuffer = null;
     this.applauseBuffer = null;
     this.muted = false;
-    this.volume = 0.70;
+    this.volume = 0.75;
     this.hapticsEnabled = true;
+
+    this.audioBuffers = {};
+    this.loadingPromises = {};
 
     this.initFromStorage();
     this._setupAutoUnlock();
+
+    // Démarrer le préchargement dès que possible
+    if (typeof window !== 'undefined') {
+      window.addEventListener('DOMContentLoaded', () => this.preloadAssets());
+    }
   }
 
   initFromStorage() {
@@ -46,6 +71,7 @@ class SoundFX {
       if (ctx && ctx.state === 'suspended') {
         ctx.resume();
       }
+      this.preloadAssets();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('touchstart', unlock);
       window.removeEventListener('keydown', unlock);
@@ -70,12 +96,12 @@ class SoundFX {
       this.compressor.attack.setValueAtTime(0.002, this.ctx.currentTime);
       this.compressor.release.setValueAtTime(0.12, this.ctx.currentTime);
 
-      // 2. Égaliseur Master (Low shelf propre sous 50Hz + Présence à 2.8kHz)
+      // 2. Égaliseur Master (Low shelf propre sous 50Hz)
       const lowFilter = this.ctx.createBiquadFilter();
       lowFilter.type = 'highpass';
       lowFilter.frequency.setValueAtTime(35, this.ctx.currentTime);
 
-      // 3. Réverbération acoustique VIP Lounge (Convolver procédural doux)
+      // 3. Réverbération acoustique VIP Lounge
       this._buildReverbBus();
 
       // 4. Volume global Master
@@ -87,7 +113,7 @@ class SoundFX {
       lowFilter.connect(this.compressor);
       this.compressor.connect(this.ctx.destination);
 
-      // Pré-génération des buffers de bruit HD
+      // Pré-génération des buffers de bruit HD pour le fallback
       this._buildNoiseBuffers();
     }
 
@@ -98,21 +124,90 @@ class SoundFX {
   }
 
   /**
-   * Synthèse d'une réponse impulsionnelle de pièce feutrée (Salle de casino VIP luxueuse)
-   * Évite les sons secs et synthétiques, apporte une profondeur acoustique chaleureuse.
+   * Précharge l'ensemble des fichiers WAV réels du dossier assets/audio/
    */
+  async preloadAssets() {
+    const ctx = this._getCtx();
+    if (!ctx) return;
+
+    for (const [key, path] of Object.entries(AUDIO_ASSETS)) {
+      if (this.audioBuffers[key] || this.loadingPromises[key]) continue;
+      this.loadingPromises[key] = (async () => {
+        try {
+          const resp = await fetch(path);
+          if (!resp.ok) return;
+          const arrayBuf = await resp.arrayBuffer();
+          const audioBuf = await ctx.decodeAudioData(arrayBuf);
+          this.audioBuffers[key] = audioBuf;
+        } catch (e) {
+          // Fallback silencieux vers la synthèse si le fetch échoue (ex: protocole file:// ou hors-ligne)
+        }
+      })();
+    }
+  }
+
+  /**
+   * Joue un fichier audio réel ou bascule sur la synthèse si non chargé
+   */
+  playAsset(key, options = {}) {
+    if (this.muted) return;
+    const ctx = this._getCtx();
+    if (!ctx) return;
+
+    const volume = options.volume !== undefined ? options.volume : 1.0;
+    const pan = options.pan || 0;
+    const playbackRate = options.playbackRate || 1.0;
+
+    if (!this.audioBuffers[key] && !this.loadingPromises[key]) {
+      this.preloadAssets();
+    }
+
+    const buffer = this.audioBuffers[key];
+    if (buffer) {
+      try {
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.playbackRate.setValueAtTime(playbackRate, ctx.currentTime);
+
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+
+        source.connect(gainNode);
+
+        if (pan !== 0 && typeof ctx.createStereoPanner === 'function') {
+          const panner = ctx.createStereoPanner();
+          panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), ctx.currentTime);
+          gainNode.connect(panner);
+          panner.connect(this.masterGain);
+        } else {
+          gainNode.connect(this.masterGain);
+        }
+
+        source.start(0);
+        return true;
+      } catch (err) {
+        console.warn(`[SoundFX] Erreur lecture asset ${key}:`, err);
+      }
+    }
+
+    // Si le buffer n'est pas prêt, exécuter la fonction de secours
+    if (typeof options.fallbackFn === 'function') {
+      options.fallbackFn();
+    }
+    return false;
+  }
+
   _buildReverbBus() {
     if (!this.ctx) return;
     try {
       const rate = this.ctx.sampleRate;
-      const length = Math.floor(rate * 0.75); // 750ms de decay naturel
+      const length = Math.floor(rate * 0.75);
       const impulse = this.ctx.createBuffer(2, length, rate);
       const left = impulse.getChannelData(0);
       const right = impulse.getChannelData(1);
 
       for (let i = 0; i < length; i++) {
         const decay = Math.exp(-i / (rate * 0.18));
-        // Légère diffusion stéréo feutrée
         left[i] = (Math.random() * 2 - 1) * decay * 0.45;
         right[i] = (Math.random() * 2 - 1) * decay * 0.45;
       }
@@ -121,7 +216,7 @@ class SoundFX {
       this.reverbNode.buffer = impulse;
 
       this.reverbGain = this.ctx.createGain();
-      this.reverbGain.gain.setValueAtTime(0.18, this.ctx.currentTime); // 18% wet pour un rendu soyeux
+      this.reverbGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
 
       this.reverbNode.connect(this.reverbGain);
       this.reverbGain.connect(this.masterGain);
@@ -130,15 +225,11 @@ class SoundFX {
     }
   }
 
-  /**
-   * Buffers de bruit haute définition (Rose velouté pour les cartes, Blanc pour les transitoires)
-   */
   _buildNoiseBuffers() {
     if (!this.ctx) return;
     const rate = this.ctx.sampleRate;
     const len = rate * 2;
 
-    // Buffer de bruit rose velouté (glissement de cartes et de feutre)
     this.pinkNoiseBuffer = this.ctx.createBuffer(1, len, rate);
     const pinkData = this.pinkNoiseBuffer.getChannelData(0);
     let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0;
@@ -153,21 +244,15 @@ class SoundFX {
       pinkData[i] = (b0 + b1 + b2 + b3 + b4 + b5 + white * 0.5362) * 0.11;
     }
 
-    // Buffer de bruit blanc filtré pour clics d'impact
     this.whiteNoiseBuffer = this.ctx.createBuffer(1, len, rate);
     const whiteData = this.whiteNoiseBuffer.getChannelData(0);
     for (let i = 0; i < len; i++) {
       whiteData[i] = (Math.random() * 2 - 1) * 0.25;
     }
 
-    // Pré-génération des applaudissements du casino
     this._buildApplauseBuffer();
   }
 
-  /**
-   * Synthèse procédurale d'applaudissements de casino (foule enthousiaste en stéréo)
-   * Génère ~140 claquements de mains individuels superposés avec résonances de paumes
-   */
   _buildApplauseBuffer() {
     if (!this.ctx) return;
     try {
@@ -181,7 +266,6 @@ class SoundFX {
       const numClaps = 140;
       for (let c = 0; c < numClaps; c++) {
         const r = Math.random();
-        // Distribution temporelle : crescendo rapide (0-0.3s) puis acclamation soutenue et decrescendo doux
         const tFrac = r < 0.25 ? (r / 0.25) * 0.25 : 0.25 + ((r - 0.25) / 0.75) * 0.75;
         const startSample = Math.floor(tFrac * (len - rate * 0.18));
 
@@ -212,7 +296,6 @@ class SoundFX {
     }
   }
 
-  // Nœud de sortie stéréo panoramique spatialisé
   _createOutNode(ctx, pan = 0, withReverb = false) {
     let target = this.masterGain;
     if (ctx.createStereoPanner && pan !== 0) {
@@ -232,7 +315,6 @@ class SoundFX {
     return { main: target, reverb: null };
   }
 
-  // Retour haptique doux sur mobile PWA
   _vibrate(pattern) {
     if (this.hapticsEnabled && !this.muted && typeof navigator !== 'undefined' && navigator.vibrate) {
       try { navigator.vibrate(pattern); } catch (e) {}
@@ -257,158 +339,250 @@ class SoundFX {
   }
 
   // =========================================================================
-  // 1. CARTES HAUTE DÉFINITION (Copag / KEM Plastifiées)
+  // 1. DISTRIBUTION & MANIPULATION DES CARTES
   // =========================================================================
 
-  /**
-   * Distribution de carte : claquement de sabot net + glissement soyeux sur le feutre
-   */
   playCardDeal(pan = 0) {
-    if (this.muted) return;
+    this.playAsset('card_deal', {
+      volume: 0.92,
+      pan: pan || (Math.random() * 0.4 - 0.2),
+      playbackRate: 0.96 + Math.random() * 0.08,
+      fallbackFn: () => this._synthCardDeal(pan)
+    });
+  }
+
+  playCardFlip() {
+    this.playAsset('card_flip', {
+      volume: 0.88,
+      playbackRate: 0.97 + Math.random() * 0.06,
+      fallbackFn: () => this._synthCardFlip()
+    });
+  }
+
+  playFold() {
+    this._vibrate(12);
+    this.playAsset('card_fold', {
+      volume: 0.90,
+      pan: -0.2,
+      playbackRate: 0.98 + Math.random() * 0.05,
+      fallbackFn: () => this._synthFold()
+    });
+  }
+
+  // =========================================================================
+  // 2. JETONS & MISES (ZYNGA POKER CLAY CHIPS)
+  // =========================================================================
+
+  playChip(pan = 0, pitchShift = 1) {
+    this.playAsset('chip_bet', {
+      volume: 0.95,
+      pan: pan,
+      playbackRate: (0.95 + Math.random() * 0.10) * pitchShift,
+      fallbackFn: () => this._synthChip(pan, pitchShift)
+    });
+  }
+
+  playChipsStack(count = 6) {
+    this._vibrate([15, 25, 20]);
+    // Essayer de jouer le sample réel de cascade de jetons en priorité
+    if (this.audioBuffers['chips_stack']) {
+      this.playAsset('chips_stack', { volume: 1.0 });
+      return;
+    }
+    // Sinon cascade de jetons unitaires
+    for (let i = 0; i < count; i++) {
+      const delay = i * 30 + Math.random() * 12;
+      const pitch = 0.94 + (i / count) * 0.16;
+      const pan = (Math.random() - 0.5) * 0.4;
+      setTimeout(() => this.playChip(pan, pitch), delay);
+    }
+  }
+
+  playAllIn() {
+    this._vibrate([35, 45, 70]);
+    this.playAsset('all_in', {
+      volume: 1.15,
+      fallbackFn: () => this._synthAllIn()
+    });
+  }
+
+  // =========================================================================
+  // 3. ACTIONS DE TABLE (Check, Tours, Timers)
+  // =========================================================================
+
+  playCheck() {
+    this._vibrate([14, 55, 18]);
+    this.playAsset('check', {
+      volume: 1.05,
+      fallbackFn: () => this._synthCheck()
+    });
+  }
+
+  playMyTurn() {
+    this._vibrate(25);
+    this.playAsset('my_turn', {
+      volume: 0.90,
+      fallbackFn: () => this._synthMyTurn()
+    });
+  }
+
+  playOtherTurn(pan = 0) {
+    this.playAsset('other_turn', {
+      volume: 0.55,
+      pan: pan,
+      fallbackFn: () => this._synthOtherTurn(pan)
+    });
+  }
+
+  playTimerTick(isUrgent = false) {
+    const key = isUrgent ? 'timer_urgent' : 'timer_tick';
+    if (isUrgent) this._vibrate(18);
+    this.playAsset(key, {
+      volume: isUrgent ? 0.95 : 0.60,
+      fallbackFn: () => this._synthTimerTick(isUrgent)
+    });
+  }
+
+  // =========================================================================
+  // 4. VICTOIRE, OVATION & INTERFACE
+  // =========================================================================
+
+  playWin() {
+    this._vibrate([45, 50, 90]);
+    this.playAsset('win', {
+      volume: 1.10,
+      fallbackFn: () => this._synthWin()
+    });
+  }
+
+  playApplause(duration = 3.2) {
+    this.playAsset('applause', {
+      volume: 0.90,
+      fallbackFn: () => this._synthApplause(duration)
+    });
+  }
+
+  playWheelClick() {
+    this.playAsset('wheel_click', {
+      volume: 0.80,
+      playbackRate: 0.92 + Math.random() * 0.16,
+      fallbackFn: () => this._synthWheelClick()
+    });
+  }
+
+  playBtnClick() {
+    this._vibrate(8);
+    this.playAsset('button_click', {
+      volume: 0.70,
+      fallbackFn: () => this._synthBtnClick()
+    });
+  }
+
+  // =========================================================================
+  // MÉTHODES DE SECOURS (FALLBACK DE SYNTHÈSE WEB AUDIO API)
+  // =========================================================================
+
+  _synthCardDeal(pan = 0) {
     const ctx = this._getCtx();
     if (!ctx || !this.pinkNoiseBuffer) return;
-
     const now = ctx.currentTime;
     const { main } = this._createOutNode(ctx, pan || (Math.random() * 0.4 - 0.2));
 
-    // Couche 1 : Snap d'extraction du sabot (transitoire vif)
     const snapOsc = ctx.createOscillator();
     const snapGain = ctx.createGain();
     snapOsc.type = 'triangle';
-    const snapFreq = 340 + Math.random() * 70;
-    snapOsc.frequency.setValueAtTime(snapFreq, now);
+    snapOsc.frequency.setValueAtTime(340 + Math.random() * 70, now);
     snapOsc.frequency.exponentialRampToValueAtTime(80, now + 0.024);
-
     snapGain.gain.setValueAtTime(0.24, now);
     snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-
     snapOsc.connect(snapGain);
     snapGain.connect(main);
     snapOsc.start(now);
     snapOsc.stop(now + 0.028);
 
-    // Couche 2 : Glissement aérodynamique sur feutre vert (filtre passe-bande dynamique)
     const noise = ctx.createBufferSource();
     noise.buffer = this.pinkNoiseBuffer;
-
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.setValueAtTime(2600 + Math.random() * 400, now);
     filter.frequency.exponentialRampToValueAtTime(750, now + 0.095);
     filter.Q.setValueAtTime(2.2, now);
-
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.01, now);
     gain.gain.linearRampToValueAtTime(0.48, now + 0.015);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
-
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(main);
-
     noise.start(now, Math.random() * 0.5, 0.11);
   }
 
-  /**
-   * Retournement 3D (Flop / Turn / River) : Swoosh d'air soyeux + "Slap" feutré de la carte qui retombe
-   */
-  playCardFlip() {
-    if (this.muted) return;
+  _synthCardFlip() {
     const ctx = this._getCtx();
     if (!ctx || !this.pinkNoiseBuffer) return;
-
     const now = ctx.currentTime;
     const { main, reverb } = this._createOutNode(ctx, 0, true);
 
-    // 1. Swoosh d'air ascendant (la carte s'élève et tourne)
     const swoosh = ctx.createBufferSource();
     swoosh.buffer = this.pinkNoiseBuffer;
-
     const swooshFilter = ctx.createBiquadFilter();
     swooshFilter.type = 'bandpass';
     swooshFilter.frequency.setValueAtTime(800, now);
     swooshFilter.frequency.exponentialRampToValueAtTime(3200, now + 0.05);
     swooshFilter.Q.setValueAtTime(1.8, now);
-
     const swooshGain = ctx.createGain();
     swooshGain.gain.setValueAtTime(0.02, now);
     swooshGain.gain.linearRampToValueAtTime(0.36, now + 0.035);
     swooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
-
     swoosh.connect(swooshFilter);
     swooshFilter.connect(swooshGain);
     swooshGain.connect(main);
     swoosh.start(now, 0.1, 0.07);
 
-    // 2. Slap d'atterrissage sur la table (la carte retombe à plat sur le feutre)
     const slapTime = now + 0.045;
     const slapOsc = ctx.createOscillator();
     const slapGain = ctx.createGain();
     slapOsc.type = 'sine';
     slapOsc.frequency.setValueAtTime(260, slapTime);
     slapOsc.frequency.exponentialRampToValueAtTime(60, slapTime + 0.035);
-
     slapGain.gain.setValueAtTime(0.22, slapTime);
     slapGain.gain.exponentialRampToValueAtTime(0.001, slapTime + 0.04);
-
     slapOsc.connect(slapGain);
     slapGain.connect(main);
     if (reverb) slapGain.connect(reverb);
-
     slapOsc.start(slapTime);
     slapOsc.stop(slapTime + 0.045);
   }
 
-  /**
-   * Fold : Glissement discret vers le sabot des cartes couchées
-   */
-  playFold() {
-    if (this.muted) return;
+  _synthFold() {
     const ctx = this._getCtx();
     if (!ctx || !this.pinkNoiseBuffer) return;
-
-    this._vibrate(12);
     const now = ctx.currentTime;
     const { main } = this._createOutNode(ctx, -0.2);
 
     const noise = ctx.createBufferSource();
     noise.buffer = this.pinkNoiseBuffer;
-
     const filter = ctx.createBiquadFilter();
     filter.type = 'lowpass';
     filter.frequency.setValueAtTime(1100, now);
     filter.frequency.exponentialRampToValueAtTime(220, now + 0.16);
-
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.02, now);
     gain.gain.linearRampToValueAtTime(0.34, now + 0.025);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
-
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(main);
     noise.start(now, 0.25, 0.18);
   }
 
-  // =========================================================================
-  // 2. JETONS CÉRAMIQUE HD (Paulson 14g Pro Casino Chips)
-  // =========================================================================
-
-  /**
-   * Jeton individuel : Synthèse modale haute fidélité (3 harmoniques de disque + impact sec)
-   * Reproduit avec exactitude le tintement cristallin et feutré d'un vrai jeton de casino.
-   */
-  playChip(pan = 0, pitchShift = 1) {
-    if (this.muted) return;
+  _synthChip(pan = 0, pitchShift = 1) {
     const ctx = this._getCtx();
     if (!ctx) return;
-
     const now = ctx.currentTime;
     const { main, reverb } = this._createOutNode(ctx, pan, true);
-
     const randVar = (0.95 + Math.random() * 0.10) * pitchShift;
-    
-    // Partiels de vibration d'un disque céramique lourd
+
     const partials = [
       { freq: 2420 * randVar, amp: 0.24, decay: 0.060 },
       { freq: 4180 * randVar, amp: 0.18, decay: 0.045 },
@@ -420,33 +594,26 @@ class SoundFX {
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(p.freq, now);
-
       gain.gain.setValueAtTime(0.001, now);
       gain.gain.linearRampToValueAtTime(p.amp, now + 0.002);
       gain.gain.exponentialRampToValueAtTime(0.0008, now + p.decay);
-
       osc.connect(gain);
       gain.connect(main);
       if (reverb) gain.connect(reverb);
-
       osc.start(now);
       osc.stop(now + p.decay + 0.005);
     });
 
-    // Transitoire d'impact sec
     if (this.whiteNoiseBuffer) {
       const click = ctx.createBufferSource();
       click.buffer = this.whiteNoiseBuffer;
-
       const bp = ctx.createBiquadFilter();
       bp.type = 'bandpass';
       bp.frequency.setValueAtTime(4800 * randVar, now);
       bp.Q.setValueAtTime(3.2, now);
-
       const cGain = ctx.createGain();
       cGain.gain.setValueAtTime(0.32, now);
       cGain.gain.exponentialRampToValueAtTime(0.001, now + 0.015);
-
       click.connect(bp);
       bp.connect(cGain);
       cGain.connect(main);
@@ -454,49 +621,24 @@ class SoundFX {
     }
   }
 
-  /**
-   * Cascade de jetons (Mise conséquente / Relance / Pot Showdown)
-   */
-  playChipsStack(count = 6) {
-    if (this.muted) return;
-    this._vibrate([15, 25, 20]);
-
-    for (let i = 0; i < count; i++) {
-      const delay = i * 30 + Math.random() * 12;
-      const pitch = 0.94 + (i / count) * 0.16;
-      const pan = (Math.random() - 0.5) * 0.4;
-      setTimeout(() => this.playChip(pan, pitch), delay);
-    }
-  }
-
-  /**
-   * Effet Cinématique All-In : Sub-bass boom percutant + Shimmer métallique + gerbe de jetons
-   */
-  playAllIn() {
-    if (this.muted) return;
+  _synthAllIn() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
-    this._vibrate([35, 45, 70]);
     const now = ctx.currentTime;
     const { main, reverb } = this._createOutNode(ctx, 0, true);
 
-    // 1. Sub-bass Drop cinématographique (120 Hz -> 32 Hz)
     const sub = ctx.createOscillator();
     const subGain = ctx.createGain();
     sub.type = 'sine';
     sub.frequency.setValueAtTime(118, now);
     sub.frequency.exponentialRampToValueAtTime(32, now + 0.50);
-
     subGain.gain.setValueAtTime(0.55, now);
     subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.52);
-
     sub.connect(subGain);
     subGain.connect(main);
     sub.start(now);
     sub.stop(now + 0.55);
 
-    // 2. Cloche dorée de tension (accord en suspension brillant)
     [523.25, 783.99, 1046.5, 1318.5].forEach((freq) => {
       const osc = ctx.createOscillator();
       const g = ctx.createGain();
@@ -510,58 +652,38 @@ class SoundFX {
       osc.start(now);
       osc.stop(now + 0.65);
     });
-
-    // 3. Cascade de jetons poussés en bloc
-    this.playChipsStack(9);
   }
 
-  // =========================================================================
-  // 3. ACTIONS DE TABLE (Check, Tour du Joueur, Timer)
-  // =========================================================================
-
-  /**
-   * Check : Double "Knock" de la phalange sur le rebord boisé & cuir de la table
-   */
-  playCheck() {
-    if (this.muted) return;
+  _synthCheck() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
-    this._vibrate([14, 55, 18]);
 
     [0, 0.115].forEach((offset, idx) => {
       const t = ctx.currentTime + offset;
       const amp = idx === 0 ? 0.48 : 0.64;
 
-      // Résonance chaude du bois
       const bodyOsc = ctx.createOscillator();
       const bodyGain = ctx.createGain();
       bodyOsc.type = 'sine';
       bodyOsc.frequency.setValueAtTime(idx === 0 ? 138 : 152, t);
       bodyOsc.frequency.exponentialRampToValueAtTime(46, t + 0.07);
-
       bodyGain.gain.setValueAtTime(amp, t);
       bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
-
       bodyOsc.connect(bodyGain);
       bodyGain.connect(this.masterGain);
       bodyOsc.start(t);
       bodyOsc.stop(t + 0.08);
 
-      // Transitoire d'impact feutré
       if (this.pinkNoiseBuffer) {
         const thud = ctx.createBufferSource();
         thud.buffer = this.pinkNoiseBuffer;
-
         const lp = ctx.createBiquadFilter();
         lp.type = 'bandpass';
         lp.frequency.setValueAtTime(340, t);
         lp.Q.setValueAtTime(2.4, t);
-
         const nGain = ctx.createGain();
         nGain.gain.setValueAtTime(amp * 0.65, t);
         nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
-
         thud.connect(lp);
         lp.connect(nGain);
         nGain.connect(this.masterGain);
@@ -570,104 +692,56 @@ class SoundFX {
     });
   }
 
-  /**
-   * Notification VIP "À votre tour" : Double carillon de vibraphone cristallin
-   */
-  playMyTurn() {
-    if (this.muted) return;
+  _synthMyTurn() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
-    this._vibrate(25);
     const now = ctx.currentTime;
     const { main, reverb } = this._createOutNode(ctx, 0, true);
 
-    // Carillon de luxe F#5 -> C#6 chaleureux
     [739.99, 1108.73].forEach((freq, i) => {
       const t = now + i * 0.075;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, t);
-
       gain.gain.setValueAtTime(0.001, t);
       gain.gain.linearRampToValueAtTime(0.22, t + 0.006);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-
       osc.connect(gain);
       gain.connect(main);
       if (reverb) gain.connect(reverb);
-
       osc.start(t);
       osc.stop(t + 0.35);
     });
   }
 
-  /**
-   * Clic doux pour le tour des autres joueurs (soft, feutré, chaleureux et non intrusif)
-   */
-  playOtherTurn(pan = 0) {
-    if (this.muted) return;
+  _synthOtherTurn(pan = 0) {
     const ctx = this._getCtx();
     if (!ctx) return;
-
     const now = ctx.currentTime;
     const { main } = this._createOutNode(ctx, pan);
 
-    // Ton chaud et doux (sinusoïde feutrée 280Hz -> 130Hz)
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const filter = ctx.createBiquadFilter();
-
     osc.type = 'sine';
     osc.frequency.setValueAtTime(280, now);
     osc.frequency.exponentialRampToValueAtTime(130, now + 0.024);
-
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(650, now); // Coupe les fréquences aiguës pour un son très soft
-
+    filter.frequency.setValueAtTime(650, now);
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.08, now + 0.003); // Volume doux
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.003);
     gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.026);
-
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(main);
-
     osc.start(now);
     osc.stop(now + 0.030);
-
-    // Léger frottement de feutrine d'accompagnement
-    if (this.pinkNoiseBuffer) {
-      const noise = ctx.createBufferSource();
-      noise.buffer = this.pinkNoiseBuffer;
-
-      const nFilter = ctx.createBiquadFilter();
-      nFilter.type = 'lowpass';
-      nFilter.frequency.setValueAtTime(500, now);
-
-      const nGain = ctx.createGain();
-      nGain.gain.setValueAtTime(0.04, now);
-      nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.022);
-
-      noise.connect(nFilter);
-      nFilter.connect(nGain);
-      nGain.connect(main);
-      noise.start(now, Math.random() * 0.5, 0.025);
-    }
   }
 
-  /**
-   * Compte à rebours du tour
-   * - Normal : tic discret de montre suisse
-   * - Urgent (< 3s) : double pulsation rythmée avec montée de tension
-   */
-  playTimerTick(isUrgent = false) {
-    if (this.muted) return;
+  _synthTimerTick(isUrgent = false) {
     const ctx = this._getCtx();
     if (!ctx) return;
-
     const now = ctx.currentTime;
 
     if (!isUrgent) {
@@ -676,31 +750,24 @@ class SoundFX {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(820, now);
       osc.frequency.exponentialRampToValueAtTime(220, now + 0.016);
-
       gain.gain.setValueAtTime(0.12, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.018);
-
       osc.connect(gain);
       gain.connect(this.masterGain);
       osc.start(now);
       osc.stop(now + 0.022);
     } else {
-      this._vibrate(18);
       [0, 0.055].forEach((d, idx) => {
         const t = now + d;
         const osc = ctx.createOscillator();
         const filter = ctx.createBiquadFilter();
         const gain = ctx.createGain();
-
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(idx === 0 ? 880 : 1174.66, t);
-
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(2400, t);
-
         gain.gain.setValueAtTime(0.19, t);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(this.masterGain);
@@ -710,23 +777,12 @@ class SoundFX {
     }
   }
 
-  // =========================================================================
-  // 4. FANFARES DE VICTOIRE, ROUE DE LA FORTUNE & UI HD
-  // =========================================================================
-
-  /**
-   * Fanfare de Victoire Casino (Arpège C Maj9 triomphal, carillons dorés et gerbe de jetons)
-   */
-  playWin() {
-    if (this.muted) return;
+  _synthWin() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
-    this._vibrate([45, 50, 90]);
     const now = ctx.currentTime;
     const { main, reverb } = this._createOutNode(ctx, 0, true);
 
-    // Arpège Do Majeur 9ème étagé en stéréo (C5, E5, G5, B5, D6, G6)
     const notes = [
       { f: 523.25, t: 0.00, d: 0.48, pan: -0.35 },
       { f: 659.25, t: 0.08, d: 0.48, pan: 0.35 },
@@ -739,37 +795,29 @@ class SoundFX {
     notes.forEach((n) => {
       const start = now + n.t;
       const { main: noteOut } = this._createOutNode(ctx, n.pan);
-
       const osc1 = ctx.createOscillator();
       const osc2 = ctx.createOscillator();
       const gain = ctx.createGain();
-
       osc1.type = 'triangle';
       osc1.frequency.setValueAtTime(n.f, start);
-
       osc2.type = 'sine';
       osc2.frequency.setValueAtTime(n.f * 2, start);
-
       const g2 = ctx.createGain();
       g2.gain.setValueAtTime(0.28, start);
-
       gain.gain.setValueAtTime(0.001, start);
       gain.gain.linearRampToValueAtTime(0.26, start + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0008, start + n.d);
-
       osc1.connect(gain);
       osc2.connect(g2);
       g2.connect(gain);
       gain.connect(noteOut);
       if (reverb) gain.connect(reverb);
-
       osc1.start(start);
       osc2.start(start);
       osc1.stop(start + n.d + 0.02);
       osc2.stop(start + n.d + 0.02);
     });
 
-    // Nappe de basse chaleureuse en soutien (C4 + G4)
     [261.63, 392.00].forEach((bf) => {
       const bOsc = ctx.createOscillator();
       const bGain = ctx.createGain();
@@ -782,99 +830,65 @@ class SoundFX {
       bOsc.start(now);
       bOsc.stop(now + 1.15);
     });
-
-    // Cascade de jetons célébrant la victoire
-    setTimeout(() => this.playChipsStack(6), 200);
   }
 
-  /**
-   * Applaudissements du public de casino (Ovation chaleureuse lors d'une victoire)
-   */
-  playApplause(duration = 3.2) {
-    if (this.muted) return;
+  _synthApplause(duration = 3.2) {
     const ctx = this._getCtx();
     if (!ctx || !this.applauseBuffer) return;
-
     const now = ctx.currentTime;
     const source = ctx.createBufferSource();
     source.buffer = this.applauseBuffer;
-
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.setValueAtTime(1400, now);
     filter.Q.setValueAtTime(0.85, now);
-
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.01, now);
     gain.gain.linearRampToValueAtTime(0.72, now + 0.20);
     gain.gain.setValueAtTime(0.68, now + duration - 0.8);
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
     source.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
-
     if (this.reverbNode) {
       const revSend = ctx.createGain();
       revSend.gain.setValueAtTime(0.35, now);
       gain.connect(revSend);
       revSend.connect(this.reverbNode);
     }
-
     source.start(now);
   }
 
-  /**
-   * Taquet mécanique de la Roue de la Fortune (Impact laiton / cuir réaliste)
-   */
-  playWheelClick() {
-    if (this.muted) return;
+  _synthWheelClick() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = 'triangle';
-    const pitch = 1200 + (Math.random() * 90 - 45);
-    osc.frequency.setValueAtTime(pitch, now);
+    osc.frequency.setValueAtTime(1200 + (Math.random() * 90 - 45), now);
     osc.frequency.exponentialRampToValueAtTime(260, now + 0.022);
-
     gain.gain.setValueAtTime(0.34, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.024);
-
     osc.connect(gain);
     gain.connect(this.masterGain);
-
     osc.start(now);
     osc.stop(now + 0.026);
   }
 
-  /**
-   * Clic UI tactile moderne (Pop doux et feutré style iOS)
-   */
-  playBtnClick() {
-    if (this.muted) return;
+  _synthBtnClick() {
     const ctx = this._getCtx();
     if (!ctx) return;
-
-    this._vibrate(8);
     const now = ctx.currentTime;
-
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.type = 'sine';
     osc.frequency.setValueAtTime(540, now);
     osc.frequency.exponentialRampToValueAtTime(190, now + 0.024);
-
     gain.gain.setValueAtTime(0.20, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.025);
-
     osc.connect(gain);
     gain.connect(this.masterGain);
-
     osc.start(now);
     osc.stop(now + 0.028);
   }
