@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Hika-Poker — Texas Hold'em Casino</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            poker: {
+              gold: '#eab308',
+              felt: '#14532d',
+              dark: '#090d16',
+              wood: '#291811'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter & Cinzel pour l'élégance casino -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #070a12;
+      background-image: radial-gradient(circle at 50% 30%, #171d31 0%, #080b13 70%, #030408 100%);
+    }
+    .font-casino {
+      font-family: 'Cinzel', serif;
+    }
+  </style>
+</head>
+<body class="text-slate-100 min-h-screen flex flex-col select-none overflow-x-hidden">
+
+  <!-- =========================================================================
+       1. BARRE DE NAVIGATION SUPÉRIEURE (HEADER CASINO)
+       ========================================================================= -->
+  <header class="w-full bg-slate-950/80 backdrop-blur-md border-b border-amber-500/20 px-3 md:px-6 py-2.5 flex items-center justify-between z-40 sticky top-0 shadow-xl">
+    <!-- Logo & Titre -->
+    <div class="flex items-center gap-2 cursor-pointer" onclick="if(window.app && window.app.isHandRunning) { if(confirm('Quitter la table en cours ?')) window.app.leaveTable(); } else if(window.app) { window.app.leaveTable(); }">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 p-0.5 shadow-lg shadow-amber-500/20 flex items-center justify-center">
+        <span class="text-xl">♠</span>
+      </div>
+      <div class="flex flex-col">
+        <span class="font-casino font-black text-lg md:text-xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 leading-tight">
+          HIKA-POKER
+        </span>
+        <span class="text-[9px] text-amber-400/80 tracking-widest font-bold uppercase -mt-0.5">Texas Hold'em No-Limit</span>
+      </div>
+    </div>
+
+    <!-- Centre : Profil & Solde de Jetons Joueur -->
+    <div class="flex items-center gap-2 md:gap-3 bg-slate-900/90 border border-amber-500/30 rounded-full px-3 py-1 shadow-inner">
+      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 flex items-center justify-center text-sm shadow" id="user-header-avatar">
+        👑
+      </div>
+      <div class="flex flex-col">
+        <span class="text-xs font-bold text-slate-300 max-w-[90px] md:max-w-[120px] truncate leading-tight" id="user-header-name">
+          Hika Champion
+        </span>
+        <div class="flex items-center gap-1 leading-tight">
+          <span class="text-xs text-amber-400">🪙</span>
+          <span class="text-xs md:text-sm font-black text-amber-300 tracking-wide" id="user-header-chips">
+            20,000
+          </span>
+        </div>
+      </div>
+      <!-- Bouton Recharge Rapide -->
+      <button id="btn-rebuy-chips" title="Recharger des jetons" class="ml-1 w-6 h-6 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center shadow transition-transform active:scale-90">
+        +
+      </button>
+    </div>
+
+    <!-- Droite : Actions Rapides (Lucky Wheel, Stats, Thème, Son) -->
+    <div class="flex items-center gap-1.5 md:gap-2">
+      <!-- Bouton Lucky Wheel -->
+      <button id="btn-open-lucky-wheel" class="relative group bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs md:text-sm px-2.5 md:px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 flex items-center gap-1.5 transition-transform active:scale-95 animate-pulse">
+        <span>🎡</span>
+        <span class="hidden sm:inline">ROUE</span>
+      </button>
+
+      <!-- Bouton Stats -->
+      <button id="btn-open-stats" title="Statistiques du joueur" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95">
+        📊
+      </button>
+
+      <!-- Toggle Mute Audio -->
+      <button id="btn-toggle-sound" title="Son" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95">
+        🔊
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. VUE LOBBY (ACCUEIL & SÉLECTION DES TABLES / MODES)
+       ========================================================================= -->
+  <main id="lobby-view" class="flex-1 w-full max-w-6xl mx-auto p-4 md:p-8 flex flex-col justify-center">
+    <!-- Hero Banner -->
+    <div class="text-center mb-8 relative">
+      <div class="inline-block px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold tracking-widest uppercase mb-3">
+        Experience Casino 100% Client-Side
+      </div>
+      <h1 class="font-casino text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 drop-shadow-md">
+        TABLES & TOURNOIS
+      </h1>
+      <p class="text-sm md:text-base text-slate-400 max-w-xl mx-auto mt-2">
+        Affrontez nos bots locaux propulsés par l'évaluation Monte-Carlo dans des parties Cash Game ou en mode Tournoi Sit & Go éliminatoire !
+      </p>
+    </div>
+
+    <!-- Grille des Modes de Jeu -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <!-- Table 1 : Cash Game Débutant -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+        <div class="absolute top-0 right-0 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="px-2.5 py-1 rounded-md bg-emerald-950 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+            CASH GAME
+          </span>
+          <span class="text-2xl">🟢</span>
+        </div>
+        <h3 class="text-xl font-black text-white mb-1">Table Amateur</h3>
+        <p class="text-xs text-slate-400 mb-4">Blinds légères pour s'échauffer et parfaire ses cotes du pot.</p>
+        
+        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Blinds :</span>
+            <span class="font-bold text-amber-300">10 / 20</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Cave (Buy-in) :</span>
+            <span class="font-bold text-emerald-400">1,000 🪙</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Places :</span>
+            <span class="font-bold">6 Joueurs (5 Bots)</span>
+          </div>
+        </div>
+
+        <button data-stakes="micro" class="btn-select-cash-table w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
+          <span>REJOINDRE LA TABLE</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- Table 2 : Cash Game Vegas Pro -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+        <div class="absolute top-0 right-0 w-28 h-28 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="px-2.5 py-1 rounded-md bg-blue-950 border border-blue-500/30 text-blue-400 text-xs font-bold">
+            VEGAS PRO
+          </span>
+          <span class="text-2xl">🔵</span>
+        </div>
+        <h3 class="text-xl font-black text-white mb-1">Table Vegas</h3>
+        <p class="text-xs text-slate-400 mb-4">Adversaires tactiques avec relances agressives et bluff réaliste.</p>
+        
+        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Blinds :</span>
+            <span class="font-bold text-amber-300">50 / 100</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Cave (Buy-in) :</span>
+            <span class="font-bold text-blue-400">5,000 🪙</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Places :</span>
+            <span class="font-bold">6 Joueurs (5 Bots)</span>
+          </div>
+        </div>
+
+        <button data-stakes="low" class="btn-select-cash-table w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
+          <span>REJOINDRE LA TABLE</span>
+          <span>→</span>
+        </button>
+      </div>
+
+      <!-- Table 3 : Tournoi Sit & Go Éliminatoire -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/40 hover:border-amber-400 rounded-2xl p-6 shadow-2xl relative overflow-hidden group transition-all duration-300 hover:-translate-y-1">
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/15 rounded-full blur-2xl"></div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="px-2.5 py-1 rounded-md bg-amber-950 border border-amber-500/40 text-amber-300 text-xs font-black tracking-wider animate-pulse">
+            ★ TOURNOI SIT & GO ★
+          </span>
+          <span class="text-2xl">🏆</span>
+        </div>
+        <h3 class="text-xl font-black text-amber-200 mb-1">6-Max Championship</h3>
+        <p class="text-xs text-slate-400 mb-4">Mode éliminatoire direct ! Blinds progressives toutes les 3 mains.</p>
+        
+        <div class="space-y-2 mb-6 text-xs text-slate-300 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+          <div class="flex justify-between">
+            <span class="text-slate-400">Structure :</span>
+            <span class="font-bold text-amber-300">Blinds progressives</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Buy-in :</span>
+            <span class="font-bold text-amber-400">2,500 🪙</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Prize Pool :</span>
+            <span class="font-black text-yellow-300">15,000 🪙</span>
+          </div>
+        </div>
+
+        <button id="btn-start-tournament" class="w-full py-3 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2">
+          <span>LANCER LE TOURNOI</span>
+          <span>🏆</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Mini-Jeu Lucky Wheel Card -->
+    <div class="w-full bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/30 rounded-2xl p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+      <div class="flex items-center gap-4 text-center md:text-left">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-3xl shadow-lg">
+          🎡
+        </div>
+        <div>
+          <h4 class="text-base md:text-lg font-black text-white">Mini-Jeu : La "Lucky Wheel" Zynga</h4>
+          <p class="text-xs text-slate-400">Faites tourner la roue de la fortune pour gagner jusqu'à 100,000 jetons gratuits !</p>
+        </div>
+      </div>
+      <button onclick="window.luckyWheel.open()" class="px-5 py-2.5 rounded-xl font-black text-xs md:text-sm bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white shadow-lg shadow-purple-900/40 transition-transform active:scale-95 whitespace-nowrap">
+        TENTER SA CHANCE
+      </button>
+    </div>
+  </main>
+
+  <!-- =========================================================================
+       3. VUE TABLE DE POKER EN DIRECT (TABLE VIEW)
+       ========================================================================= -->
+  <section id="table-view" class="hidden flex-1 flex flex-col justify-between relative overflow-hidden p-2 md:p-4">
+    
+    <!-- Table Header HUD -->
+    <div class="w-full max-w-5xl mx-auto flex items-center justify-between px-2 py-1 z-30">
+      <div class="flex items-center gap-2">
+        <button id="btn-leave-table" class="px-3 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold transition-colors">
+          ← Quitter
+        </button>
+        <span class="text-xs md:text-sm font-black text-amber-300 drop-shadow" id="current-table-title">
+          Table Amateur (10/20)
+        </span>
+      </div>
+
+      <!-- HUD Tournoi (Visible en mode tournoi uniquement) -->
+      <div id="tournament-hud" class="hidden flex items-center gap-2 md:gap-3 bg-black/60 backdrop-blur-sm border border-amber-500/40 px-3 py-1 rounded-full text-xs">
+        <div class="flex items-center gap-1">
+          <span class="text-slate-400">Joueurs :</span>
+          <span class="font-black text-white" id="tourney-remaining">6/6</span>
+        </div>
+        <span class="text-slate-600">|</span>
+        <div class="flex items-center gap-1">
+          <span class="font-bold text-amber-300" id="tourney-level">Niveau 1</span>
+          <span class="text-[10px] text-slate-400" id="tourney-blinds">(25/50)</span>
+        </div>
+      </div>
+
+      <!-- Thème du tapis -->
+      <div class="flex items-center gap-1.5">
+        <label for="table-theme-select" class="text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
+        <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-xs rounded-md px-1.5 py-0.5 outline-none">
+          <option value="green" selected>Feutre Vert</option>
+          <option value="blue">Bleu Vegas</option>
+          <option value="red">Rouge Velvet</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Conteneur Tapis de Poker Ovale Zynga -->
+    <div class="relative w-full max-w-5xl mx-auto flex-1 flex items-center justify-center my-1 md:my-2 min-h-[360px] md:min-h-[460px]">
+      
+      <!-- La Table Ovale -->
+      <div id="poker-table" class="relative w-full h-[340px] sm:h-[390px] md:h-[460px] felt-green poker-table-border flex items-center justify-center shadow-2xl transition-all duration-500">
+        <!-- Surpiqûre en cuir et ligne feutrée -->
+        <div class="table-leather-stitch"></div>
+        <div class="table-inner-ring"></div>
+        <div class="table-watermark text-xl sm:text-2xl md:text-4xl">HIKA POKER</div>
+
+        <!-- Sièges Joueurs (6 places absolues autour de la table) -->
+        <div id="seats-container" class="absolute inset-0 pointer-events-auto"></div>
+
+        <!-- Centre de la Table : Pot & Board Cards -->
+        <div class="flex flex-col items-center justify-center z-10 pointer-events-none -mt-4 md:-mt-6">
+          
+          <!-- Pot Principal & Annexes -->
+          <div id="table-pot-container" class="flex flex-col items-center mb-2 animate-fade-in">
+            <div class="flex items-center gap-1.5 bg-black/75 backdrop-blur-sm px-3.5 py-1 rounded-full border border-amber-400/80 shadow-2xl">
+              <div class="w-4 h-4 rounded-full poker-chip chip-gold text-[9px] font-black">★</div>
+              <span class="text-xs font-black text-slate-300 tracking-wider">POT :</span>
+              <span class="text-sm md:text-base font-black text-amber-300 tracking-wider" id="pot-amount-text">0</span>
+            </div>
+            <!-- Pots annexes -->
+            <div id="side-pots-container" class="flex gap-1.5 mt-1"></div>
+          </div>
+
+          <!-- Cartes du Board (Flop, Turn, River) -->
+          <div id="community-cards" class="flex items-center gap-1.5 md:gap-2.5 min-h-[76px] md:min-h-[96px]">
+            <!-- Généré dynamiquement avec animation 3D -->
+          </div>
+
+          <!-- Bannière de Victoire au Showdown -->
+          <div id="winner-banner" class="absolute z-40 hidden pointer-events-none"></div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- =========================================================================
+         4. PANNEAU DE CONTRÔLE JOUEUR (ACTION BAR & PRÉ-ACTIONS)
+         ========================================================================= -->
+    <div class="w-full max-w-3xl mx-auto z-30 flex flex-col items-center">
+      
+      <!-- Combinaison Actuelle du Joueur -->
+      <div class="mb-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/30 text-center shadow-lg">
+        <span class="text-[11px] font-bold text-slate-300">Votre main : </span>
+        <span class="text-xs font-black text-amber-300" id="my-hand-rank-text">En attente de la main...</span>
+      </div>
+
+      <!-- Curseur de Relance Drawer (Raise Slider) -->
+      <div id="raise-slider-container" class="hidden w-full bg-slate-950/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-3 mb-2 flex-col gap-2.5 shadow-2xl animate-fade-in">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-300">Ajuster la mise :</span>
+          <div class="flex items-center gap-1">
+            <span class="text-sm md:text-base font-black text-yellow-300" id="slider-raise-value">60</span>
+            <span class="text-xs text-amber-400">🪙</span>
+          </div>
+          <button id="btn-close-slider" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-0.5">✕</button>
+        </div>
+
+        <!-- Slider + Boutons Plus / Moins -->
+        <div class="flex items-center gap-2">
+          <button id="btn-slider-minus" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-base flex items-center justify-center border border-slate-700 active:scale-95">
+            -
+          </button>
+          <input type="range" id="raise-range-slider" class="raise-slider flex-1 cursor-pointer" min="40" max="1000" step="20" value="40">
+          <button id="btn-slider-plus" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-base flex items-center justify-center border border-slate-700 active:scale-95">
+            +
+          </button>
+        </div>
+
+        <!-- Raccourcis Rapides Zynga : Min, 1/2 Pot, Pot, All-in -->
+        <div class="grid grid-cols-4 gap-2">
+          <button id="btn-quick-min" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-extrabold text-slate-200 border border-slate-700">
+            Min
+          </button>
+          <button id="btn-quick-half-pot" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-extrabold text-slate-200 border border-slate-700">
+            1/2 Pot
+          </button>
+          <button id="btn-quick-pot" class="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-extrabold text-slate-200 border border-slate-700">
+            Pot
+          </button>
+          <button id="btn-quick-all-in" class="py-1.5 rounded-lg bg-pink-900/60 hover:bg-pink-800/80 text-[11px] font-extrabold text-pink-200 border border-pink-700">
+            All-In
+          </button>
+        </div>
+
+        <!-- Bouton Confirmer la Mise -->
+        <button id="btn-confirm-raise" class="w-full py-2.5 rounded-xl font-black text-sm tracking-wide bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 text-slate-950 shadow-lg shadow-amber-500/20 active:scale-95">
+          CONFIRMER LA MISE
+        </button>
+      </div>
+
+      <!-- Barre de Pré-Actions Zynga (Quand ce n'est PAS au tour du joueur) -->
+      <div id="pre-action-bar" class="w-full flex items-center justify-center gap-2 md:gap-4 bg-slate-950/80 backdrop-blur-sm border border-slate-800 rounded-xl px-3 py-2 shadow-lg">
+        <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer hover:text-white">
+          <input type="checkbox" id="pre-check-fold" value="checkFold" class="rounded text-amber-500 focus:ring-0 w-4 h-4 bg-slate-900 border-slate-700">
+          <span>Check / Fold</span>
+        </label>
+        <span class="text-slate-700">|</span>
+        <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer hover:text-white">
+          <input type="checkbox" id="pre-auto-check" value="autoCheck" class="rounded text-emerald-500 focus:ring-0 w-4 h-4 bg-slate-900 border-slate-700">
+          <span>Auto-Check</span>
+        </label>
+        <span class="text-slate-700">|</span>
+        <label class="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer hover:text-white">
+          <input type="checkbox" id="pre-call-any" value="callAny" class="rounded text-blue-500 focus:ring-0 w-4 h-4 bg-slate-900 border-slate-700">
+          <span>Suivre Tout</span>
+        </label>
+      </div>
+
+      <!-- Barre d'Actions Principale (Quand c'est AU TOUR du joueur) -->
+      <div id="action-bar" class="hidden w-full flex items-center justify-center gap-2 md:gap-3 py-1">
+        <!-- Fold -->
+        <button id="btn-fold" class="btn-zynga btn-zynga-fold flex-1 py-3 px-3 text-xs md:text-sm font-black flex flex-col items-center">
+          <span>SE COUCHER</span>
+          <span class="text-[9px] opacity-80 font-normal">Fold</span>
+        </button>
+
+        <!-- Check -->
+        <button id="btn-check" class="btn-zynga btn-zynga-check flex-1 py-3 px-3 text-xs md:text-sm font-black flex flex-col items-center">
+          <span>PAROLE</span>
+          <span class="text-[9px] opacity-80 font-normal">Check</span>
+        </button>
+
+        <!-- Call -->
+        <button id="btn-call" class="btn-zynga btn-zynga-call flex-1 py-3 px-3 text-xs md:text-sm font-black flex flex-col items-center">
+          <span>SUIVRE</span>
+          <span class="text-[10px] font-black" id="call-amount-display">(0)</span>
+        </button>
+
+        <!-- Raise / Bet -->
+        <button id="btn-open-raise" class="btn-zynga btn-zynga-raise flex-1 py-3 px-3 text-xs md:text-sm font-black flex flex-col items-center">
+          <span class="raise-btn-label">RELANCER</span>
+          <span class="text-[9px] opacity-80 font-normal">Mise personnalisée</span>
+        </button>
+
+        <!-- All-in Direct -->
+        <button id="btn-all-in" class="btn-zynga btn-zynga-allin py-3 px-3 text-xs md:text-sm font-black flex flex-col items-center">
+          <span>TAPIS</span>
+          <span class="text-[9px] opacity-80 font-normal">All-in</span>
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- =========================================================================
+       5. MODALS & OVERLAYS
+       ========================================================================= -->
+
+  <!-- Modal Lucky Wheel -->
+  <div id="wheel-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-6 max-w-md w-full shadow-2xl relative flex flex-col items-center">
+      <!-- Fermer -->
+      <button id="wheel-close-btn" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+
+      <!-- Titre -->
+      <h3 class="font-casino text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 mb-1">
+        LUCKY WHEEL
+      </h3>
+      <p class="text-xs text-slate-400 mb-3" id="wheel-timer-status">Lancer gratuit disponible !</p>
+
+      <!-- Résultat de gain -->
+      <div id="wheel-result-banner" class="hidden mb-3 text-center"></div>
+
+      <!-- Canvas de la Roue -->
+      <div class="relative my-2">
+        <canvas id="wheel-canvas" class="cursor-pointer"></canvas>
+      </div>
+
+      <!-- Bouton Spin -->
+      <button id="wheel-spin-btn" class="w-full mt-3 py-3.5 rounded-2xl font-black text-base tracking-widest uppercase bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-slate-950 shadow-xl shadow-amber-500/30 transition-transform active:scale-95 animate-pulse">
+        FAIRE TOURNER LA ROUE !
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Statistiques du Joueur -->
+  <div id="stats-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl relative">
+      <button id="btn-close-stats" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold">✕</button>
+      
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-2xl">
+          📊
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white">Profil & Statistiques</h3>
+          <p class="text-xs text-slate-400">Historique complet de vos performances</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Mains Jouées</span>
+          <span class="text-lg font-black text-white" id="stat-hands-played">0</span>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Mains Gagnées</span>
+          <span class="text-lg font-black text-emerald-400" id="stat-hands-won">0</span>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Taux de Victoire</span>
+          <span class="text-lg font-black text-blue-400" id="stat-win-rate">0%</span>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Plus Gros Pot Remporté</span>
+          <span class="text-lg font-black text-amber-300" id="stat-biggest-pot">0</span>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Meilleure Main</span>
+          <span class="text-sm font-black text-yellow-300 truncate block" id="stat-best-hand">Aucune</span>
+        </div>
+        <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+          <span class="text-[10px] text-slate-400 block">Tournois Gagnés</span>
+          <span class="text-lg font-black text-purple-400" id="stat-tourney-won">0 / 0</span>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800 flex justify-between items-center">
+        <span class="text-xs text-slate-400">Total des Gains Cumulés :</span>
+        <span class="text-sm font-black text-amber-300" id="stat-total-won">0 🪙</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Fin de Tournoi -->
+  <div id="tournament-result-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center flex flex-col items-center">
+      <div class="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-3xl mb-3 shadow-lg shadow-amber-500/30">
+        🏆
+      </div>
+      <h3 class="text-xl font-black text-white mb-1" id="tournament-result-title">TOURNOI TERMINÉ</h3>
+      <span class="text-2xl font-black text-yellow-400 mb-1" id="tournament-result-rank">1ère Place</span>
+      <span class="text-sm font-bold text-emerald-400 mb-6" id="tournament-result-prize">+10,000 jetons</span>
+
+      <button id="btn-close-tourney-result" class="w-full py-3 rounded-xl font-black text-sm bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-lg active:scale-95">
+        RETOURNER AU LOBBY
+      </button>
+    </div>
+  </div>
+
+  <!-- Canvas Confettis Overlay -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- =========================================================================
+       6. SCRIPTS MODULAIRES (ORDRE STRICT DE DÉPENDANCE)
+       ========================================================================= -->
+  <script src="engine.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/bot-names.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/tournament.js"></script>
+  <script src="js/ui-table.js"></script>
+  <script src="js/ui-controls.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
