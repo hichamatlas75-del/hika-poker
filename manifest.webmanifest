@@ -1,0 +1,56 @@
+{
+  "name": "Hika-Poker — Texas Hold'em Casino",
+  "short_name": "Hika-Poker",
+  "description": "Jeu de poker Texas Hold'em No-Limit complet style Zynga Poker avec bots locaux et Lucky Wheel.",
+  "start_url": "./",
+  "scope": "./",
+  "id": "hika-poker-app",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "window-controls-overlay"],
+  "orientation": "any",
+  "theme_color": "#070a12",
+  "background_color": "#070a12",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Partie Rapide",
+      "short_name": "Jouer",
+      "description": "Lancer une partie de poker",
+      "url": "./#play",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Lucky Wheel",
+      "short_name": "Roue",
+      "description": "Tourner la roue de la fortune",
+      "url": "./#wheel",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -30,6 +30,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
+  <!-- PWA Manifest & Configuration Plein Écran -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#070a12">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hika-Poker">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon.png">
+  <link rel="shortcut icon" href="favicon.ico">
+
   <link rel="stylesheet" href="css/style.css">
   <style>
     body {
@@ -83,8 +94,14 @@
       </button>
     </div>
 
-    <!-- Droite : Actions Rapides (Lucky Wheel, Stats, Thème, Son) -->
+    <!-- Droite : Actions Rapides (Installer PWA, Lucky Wheel, Stats, Son) -->
     <div class="flex items-center gap-1.5 md:gap-2">
+      <!-- Bouton Installation PWA Plein Écran -->
+      <button id="btn-install-pwa" title="Installer l'application en plein écran" class="hidden items-center gap-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs px-2.5 py-1.5 rounded-full shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 animate-pulse">
+        <span>📲</span>
+        <span class="hidden sm:inline">INSTALLER</span>
+      </button>
+
       <!-- Bouton Lucky Wheel -->
       <button id="btn-open-lucky-wheel" class="relative group bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs md:text-sm px-2.5 md:px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 flex items-center gap-1.5 transition-transform active:scale-95 animate-pulse">
         <span>🎡</span>
@@ -543,5 +560,57 @@
   <script src="js/ui-table.js"></script>
   <script src="js/ui-controls.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- Enregistrement Service Worker & Installation PWA Plein Écran -->
+  <script>
+    // 1. Enregistrement Service Worker pour le jeu hors-ligne
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then((reg) => console.log('[PWA] Service Worker actif (scope:', reg.scope, ')'))
+          .catch((err) => console.warn('[PWA] Erreur enregistrement SW:', err));
+      });
+    }
+
+    // 2. Gestion de l'invite d'installation (beforeinstallprompt)
+    let deferredPrompt = null;
+    const installBtn = document.getElementById('btn-install-pwa');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Empêcher l'affichage de la mini-infobar par défaut
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.classList.add('flex');
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('[PWA] Choix utilisateur:', outcome);
+          deferredPrompt = null;
+          installBtn.classList.add('hidden');
+          installBtn.classList.remove('flex');
+        } else {
+          // Si déjà installé ou navigateur ne supportant pas beforeinstallprompt, tenter le plein écran
+          if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
+        }
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      console.log('[PWA] Hika-Poker a été installé avec succès !');
+      if (installBtn) {
+        installBtn.classList.add('hidden');
+        installBtn.classList.remove('flex');
+      }
+    });
+  </script>
 </body>
 </html>
