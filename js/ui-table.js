@@ -509,20 +509,31 @@ class TableUI {
     const banner = document.getElementById('winner-banner');
     if (!banner) return;
 
+    if (this.winnerBannerTimeout) {
+      clearTimeout(this.winnerBannerTimeout);
+      this.winnerBannerTimeout = null;
+    }
+
     banner.innerHTML = `
-      <div class="winner-banner-anim bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-900 px-6 py-3 rounded-2xl shadow-2xl border-2 border-yellow-200 flex flex-col items-center">
-        <span class="text-xs font-black tracking-widest uppercase text-amber-950">🏆 VAINQUEUR DU POT 🏆</span>
-        <span class="text-xl md:text-2xl font-black text-white drop-shadow">${winnerName}</span>
-        <div class="flex items-center gap-2 mt-0.5">
-          <span class="text-xs font-bold text-amber-950 bg-yellow-300/80 px-2 py-0.5 rounded-full">${handLabel}</span>
-          <span class="text-sm font-black text-white drop-shadow">+${amountWon.toLocaleString()} 🪙</span>
+      <div class="winner-banner-anim bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-950 px-3.5 py-1 sm:px-6 sm:py-2 rounded-xl sm:rounded-2xl shadow-2xl border-2 border-yellow-200 flex flex-col items-center">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <span class="text-[9px] sm:text-xs font-black tracking-wider uppercase text-amber-950">🏆 VAINQUEUR :</span>
+          <span class="winner-title text-xs sm:text-base md:text-lg font-black text-white drop-shadow">${winnerName}</span>
+          <span class="winner-amount text-[11px] sm:text-sm font-black text-amber-950 bg-yellow-300/90 px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full shadow-sm">+${amountWon.toLocaleString()} 🪙</span>
         </div>
+        ${handLabel ? `
+          <div class="flex items-center gap-1 mt-0.5">
+            <span class="winner-subtitle text-[9px] sm:text-xs font-extrabold text-amber-950 bg-yellow-300/80 px-2 py-0.2 rounded-full">${handLabel}</span>
+          </div>
+        ` : ''}
       </div>
     `;
     banner.classList.remove('hidden');
 
-    setTimeout(() => {
+    this.winnerBannerTimeout = setTimeout(() => {
       banner.classList.add('hidden');
+      banner.innerHTML = '';
+      this.winnerBannerTimeout = null;
     }, 4500);
   }
 
@@ -549,12 +560,21 @@ class TableUI {
   clearWinnerShowcase() {
     const container = document.getElementById('winner-showcase-container');
     const cardsEl = document.getElementById('winner-showcase-cards');
+    const banner = document.getElementById('winner-banner');
     if (container) {
       container.classList.add('hidden');
       container.classList.remove('flex');
     }
     if (cardsEl) {
       cardsEl.innerHTML = '';
+    }
+    if (this.winnerBannerTimeout) {
+      clearTimeout(this.winnerBannerTimeout);
+      this.winnerBannerTimeout = null;
+    }
+    if (banner) {
+      banner.classList.add('hidden');
+      banner.innerHTML = '';
     }
   }
 }

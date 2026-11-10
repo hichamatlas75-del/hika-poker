@@ -371,13 +371,25 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 
 /* ==========================================================================
    BANNIÈRE DE VICTOIRE AU SHOWDOWN
+   Placée sous les cartes pour ne jamais masquer les cartes du board ni les cartes gagnantes
    ========================================================================== */
+#winner-banner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: calc(100% + 8px);
+  z-index: 35;
+  pointer-events: none;
+  width: max-content;
+  max-width: 94vw;
+}
+
 .winner-banner-anim {
-  animation: bannerPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: bannerPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes bannerPop {
-  0% { transform: scale(0.6) translateY(20px); opacity: 0; }
+  0% { transform: scale(0.7) translateY(10px); opacity: 0; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
@@ -613,6 +625,27 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     font-size: 8px !important;
     padding: 1px 4px !important;
     margin-bottom: 1px !important;
+  }
+
+  /* Bannière de Victoire au Showdown : sous les cartes en Paysage */
+  #winner-banner {
+    top: calc(100% + 4px) !important;
+  }
+  #winner-banner .winner-banner-anim {
+    padding: 2px 10px !important;
+    border-radius: 10px !important;
+    max-width: 90vw !important;
+  }
+  #winner-banner .winner-title {
+    font-size: 12px !important;
+  }
+  #winner-banner .winner-subtitle {
+    font-size: 9px !important;
+    padding: 1px 5px !important;
+  }
+  #winner-banner .winner-amount {
+    font-size: 10px !important;
+    padding: 1px 5px !important;
   }
 
   /* JOUEUR HUMAIN (SIÈGE 0) : COMPACT ET COLLÉ AU BORD INFÉRIEUR */
