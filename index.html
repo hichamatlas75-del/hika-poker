@@ -328,14 +328,47 @@
         </div>
       </div>
 
-      <!-- Thème du tapis -->
-      <div class="flex items-center gap-1">
-        <label for="table-theme-select" class="text-[9px] sm:text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
-        <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none">
-          <option value="green" selected>Feutre Vert</option>
-          <option value="blue">Bleu Vegas</option>
-          <option value="red">Rouge Velvet</option>
-        </select>
+      <!-- Actions de Table : Pause & Thème -->
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Bouton Pause -->
+        <button id="btn-toggle-pause" title="Mettre en pause la partie" class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 text-xs font-bold transition-all active:scale-95 flex items-center gap-1 shadow-sm">
+          <span id="pause-btn-icon">⏸️</span>
+          <span id="pause-btn-text" class="hidden sm:inline">Pause</span>
+        </button>
+
+        <!-- Thème du tapis -->
+        <div class="flex items-center gap-1">
+          <label for="table-theme-select" class="text-[9px] sm:text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
+          <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none">
+            <option value="green" selected>Feutre Vert</option>
+            <option value="blue">Bleu Vegas</option>
+            <option value="red">Rouge Velvet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overlay de Pause Zynga Casino -->
+    <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4 select-none">
+      <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-3xl shadow-xl shadow-amber-500/25 animate-pulse">
+          ⏸️
+        </div>
+        <h3 class="text-xl sm:text-2xl font-black text-amber-300 font-casino mb-2">PARTIE EN PAUSE</h3>
+        <p class="text-xs sm:text-sm text-slate-300 mb-6 leading-relaxed">
+          Le chronomètre et les actions sont suspendus.<br>Prenez votre temps avant de continuer !
+        </p>
+        
+        <div class="flex flex-col gap-3">
+          <button id="btn-resume-game" class="w-full py-3 rounded-xl font-black text-xs sm:text-sm tracking-wide bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white shadow-lg shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2">
+            <span class="text-base">▶️</span>
+            <span>REPRENDRE LA PARTIE</span>
+          </button>
+          <button id="btn-pause-leave" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors">
+            ← Quitter vers le Lobby
+          </button>
+        </div>
       </div>
     </div>
 

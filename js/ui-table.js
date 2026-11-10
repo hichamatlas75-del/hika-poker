@@ -391,9 +391,16 @@ class TableUI {
     const startTime = Date.now();
     let lastSecondTicked = -1;
 
+    this.timerDuration = durationMs;
+    this.timerStartTime = startTime;
+    this.timerOnTimeout = onTimeout;
+    this.isTimerPaused = false;
+    this.timerRemaining = durationMs;
+
     this.timerInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
       const remaining = Math.max(0, durationMs - elapsed);
+      this.timerRemaining = remaining;
       const ratio = remaining / durationMs;
       const offset = totalCircumference * (1 - ratio);
 
@@ -416,11 +423,32 @@ class TableUI {
     }, 100);
   }
 
+  pauseTurnTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+      this.isTimerPaused = true;
+    }
+  }
+
+  resumeTurnTimer() {
+    if (this.isTimerPaused && this.currentTimerSeat !== null && this.timerRemaining > 0) {
+      this.isTimerPaused = false;
+      const seat = this.currentTimerSeat;
+      const rem = this.timerRemaining;
+      const cb = this.timerOnTimeout;
+      this.startTurnTimer(seat, rem, cb);
+    }
+  }
+
   stopTurnTimer() {
     if (this.timerInterval) {
       clearInterval(this.timerInterval);
       this.timerInterval = null;
     }
+    this.isTimerPaused = false;
+    this.timerRemaining = 0;
+    this.timerOnTimeout = null;
     if (this.currentTimerSeat !== null) {
       const timerContainer = document.getElementById(`timer-ui-${this.currentTimerSeat}`);
       if (timerContainer) timerContainer.style.display = 'none';

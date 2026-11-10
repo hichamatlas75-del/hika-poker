@@ -24,6 +24,15 @@ class HikaPokerApp {
 
     // Maintien de l'écran allumé (Screen Wake Lock)
     this.wakeLock = null;
+
+    // Gestion du Mode Pause
+    this.isPaused = false;
+    this.botStepStartTime = null;
+    this.botStepDuration = 0;
+    this.botStepRemaining = 0;
+    this.nextHandStartTime = null;
+    this.nextHandDuration = 0;
+    this.nextHandRemaining = 0;
   }
 
   init() {
@@ -75,6 +84,44 @@ class HikaPokerApp {
         }
       });
     }
+
+    // Bouton Pause dans le HUD de la table
+    const btnPause = document.getElementById('btn-toggle-pause');
+    if (btnPause) {
+      btnPause.addEventListener('click', () => {
+        this.togglePause();
+      });
+    }
+
+    // Bouton Reprendre dans l'overlay de pause
+    const btnResume = document.getElementById('btn-resume-game');
+    if (btnResume) {
+      btnResume.addEventListener('click', () => {
+        this.resumeGame();
+      });
+    }
+
+    // Bouton Quitter la table depuis l'overlay de pause
+    const btnPauseLeave = document.getElementById('btn-pause-leave');
+    if (btnPauseLeave) {
+      btnPauseLeave.addEventListener('click', () => {
+        if (confirm('Voulez-vous vraiment quitter la table ?')) {
+          this.resumeGame(false);
+          this.leaveTable();
+        }
+      });
+    }
+
+    // Raccourci clavier 'P' pour mettre en pause la table
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'p' || e.key === 'P') {
+        const tableView = document.getElementById('table-view');
+        if (tableView && !tableView.classList.contains('hidden') && this.engine) {
+          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+          this.togglePause();
+        }
+      }
+    });
 
     // Bouton Roue de la fortune
     const btnLuckyWheel = document.getElementById('btn-open-lucky-wheel');
@@ -332,6 +379,10 @@ class HikaPokerApp {
   }
 
   showTableScreen(tableName) {
+    this.isPaused = false;
+    this.botStepRemaining = 0;
+    this.nextHandRemaining = 0;
+    this.updatePauseUI(false);
     document.getElementById('lobby-view').classList.add('hidden');
     document.getElementById('table-view').classList.remove('hidden');
     document.getElementById('current-table-title').textContent = tableName;
@@ -341,6 +392,10 @@ class HikaPokerApp {
   leaveTable() {
     this.stopAllTimers();
     this.releaseWakeLock();
+    this.isPaused = false;
+    this.botStepRemaining = 0;
+    this.nextHandRemaining = 0;
+    this.updatePauseUI(false);
 
     // Si partie de cash game, recréditer les jetons restants du joueur sur son compte principal
     if (this.gameMode === 'cash' && this.engine) {
@@ -359,6 +414,123 @@ class HikaPokerApp {
     document.getElementById('table-view').classList.add('hidden');
     document.getElementById('lobby-view').classList.remove('hidden');
     this.updateUserHeader();
+  }
+
+  togglePause() {
+    if (!this.engine) return;
+    if (this.isPaused) {
+      this.resumeGame();
+    } else {
+      this.pauseGame();
+    }
+  }
+
+  pauseGame() {
+    if (!this.engine || this.isPaused) return;
+    this.isPaused = true;
+    if (window.soundFX) window.soundFX.playBtnClick();
+
+    // 1. Mettre en pause le timer visuel de la table
+    if (window.tableUI) {
+      window.tableUI.pauseTurnTimer();
+    }
+
+    // 2. Mettre en pause la réflexion du bot si active
+    if (this.botStepTimeout) {
+      clearTimeout(this.botStepTimeout);
+      this.botStepTimeout = null;
+      const elapsed = Date.now() - (this.botStepStartTime || Date.now());
+      this.botStepRemaining = Math.max(150, (this.botStepDuration || 1000) - elapsed);
+    }
+
+    // 3. Mettre en pause le passage à la main suivante si actif
+    if (this.nextHandTimeout) {
+      clearTimeout(this.nextHandTimeout);
+      this.nextHandTimeout = null;
+      const elapsed = Date.now() - (this.nextHandStartTime || Date.now());
+      this.nextHandRemaining = Math.max(200, (this.nextHandDuration || 3500) - elapsed);
+    }
+
+    // 4. Mettre à jour l'interface visuelle
+    this.updatePauseUI(true);
+  }
+
+  resumeGame(playSound = true) {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    if (playSound && window.soundFX) window.soundFX.playBtnClick();
+
+    // 1. Masquer l'overlay et réinitialiser l'état du bouton
+    this.updatePauseUI(false);
+
+    // 2. Reprendre le timer de tour (humain ou bot)
+    if (window.tableUI) {
+      window.tableUI.resumeTurnTimer();
+    }
+
+    // 3. Reprendre la réflexion du bot si elle était en cours
+    if (this.botStepRemaining > 0) {
+      const remainingTime = this.botStepRemaining;
+      this.botStepRemaining = 0;
+      this.botStepDuration = remainingTime;
+      this.botStepStartTime = Date.now();
+
+      this.botStepTimeout = setTimeout(() => {
+        if (window.tableUI) window.tableUI.stopTurnTimer();
+        this.botStepTimeout = null;
+        if (this.engine && this.engine.phase !== 'handOver' && !this.isPaused) {
+          this.engine.stepBot();
+        }
+      }, remainingTime);
+    }
+
+    // 4. Reprendre le délai vers la main suivante si elle était en attente
+    if (this.nextHandRemaining > 0) {
+      const remainingTime = this.nextHandRemaining;
+      this.nextHandRemaining = 0;
+      this.nextHandDuration = remainingTime;
+      this.nextHandStartTime = Date.now();
+
+      this.nextHandTimeout = setTimeout(() => {
+        this.nextHandTimeout = null;
+        if (!this.isPaused) {
+          this.startNextHand();
+        }
+      }, remainingTime);
+    }
+  }
+
+  updatePauseUI(isPaused) {
+    const pauseOverlay = document.getElementById('pause-overlay');
+    const pauseBtnIcon = document.getElementById('pause-btn-icon');
+    const pauseBtnText = document.getElementById('pause-btn-text');
+    const btnPause = document.getElementById('btn-toggle-pause');
+
+    if (pauseOverlay) {
+      if (isPaused) {
+        pauseOverlay.classList.remove('hidden');
+        pauseOverlay.classList.add('flex');
+      } else {
+        pauseOverlay.classList.add('hidden');
+        pauseOverlay.classList.remove('flex');
+      }
+    }
+
+    if (pauseBtnIcon) {
+      pauseBtnIcon.textContent = isPaused ? '▶️' : '⏸️';
+    }
+    if (pauseBtnText) {
+      pauseBtnText.textContent = isPaused ? 'Reprendre' : 'Pause';
+    }
+    if (btnPause) {
+      if (isPaused) {
+        btnPause.classList.remove('bg-amber-600/20', 'text-amber-300', 'border-amber-500/40');
+        btnPause.classList.add('bg-emerald-600/30', 'text-emerald-300', 'border-emerald-500/50');
+      } else {
+        btnPause.classList.remove('bg-emerald-600/30', 'text-emerald-300', 'border-emerald-500/50');
+        btnPause.classList.add('bg-amber-600/20', 'text-amber-300', 'border-amber-500/40');
+      }
+    }
   }
 
   async requestWakeLock() {
@@ -569,8 +741,14 @@ class HikaPokerApp {
       this.handleHandOutcome(result);
 
       // Pause de 3.5 secondes pour admirer le dénouement, puis main suivante
+      this.nextHandDuration = 3500;
+      this.nextHandStartTime = Date.now();
+      this.nextHandRemaining = 0;
       this.nextHandTimeout = setTimeout(() => {
-        this.startNextHand();
+        this.nextHandTimeout = null;
+        if (!this.isPaused) {
+          this.startNextHand();
+        }
       }, 3500);
     });
   }
@@ -646,8 +824,14 @@ class HikaPokerApp {
       this.isHandRunning = false;
 
       // Main suivante après 3.8s
+      this.nextHandDuration = 3800;
+      this.nextHandStartTime = Date.now();
+      this.nextHandRemaining = 0;
       this.nextHandTimeout = setTimeout(() => {
-        this.startNextHand();
+        this.nextHandTimeout = null;
+        if (!this.isPaused) {
+          this.startNextHand();
+        }
       }, 3800);
     }, delay + 400);
 
@@ -772,11 +956,15 @@ class HikaPokerApp {
 
       // Délai de réflexion réaliste (700ms à 1600ms) pour une immersion parfaite
       const thinkingTime = 700 + Math.floor(Math.random() * 900);
+      this.botStepDuration = thinkingTime;
+      this.botStepStartTime = Date.now();
+      this.botStepRemaining = 0;
       window.tableUI.startTurnTimer(uiSeatIdx, thinkingTime);
 
       this.botStepTimeout = setTimeout(() => {
         window.tableUI.stopTurnTimer();
-        if (this.engine && this.engine.phase !== 'handOver') {
+        this.botStepTimeout = null;
+        if (this.engine && this.engine.phase !== 'handOver' && !this.isPaused) {
           this.engine.stepBot();
         }
       }, thinkingTime);
@@ -784,7 +972,7 @@ class HikaPokerApp {
   }
 
   handlePlayerAction(action) {
-    if (!this.engine) return;
+    if (!this.engine || this.isPaused) return;
     window.tableUI.stopTurnTimer();
 
     const res = this.engine.act(this.humanId, action);
@@ -797,7 +985,7 @@ class HikaPokerApp {
   }
 
   startNextHand() {
-    if (!this.engine) return;
+    if (!this.engine || this.isPaused) return;
     this.stopAllTimers();
     this.requestWakeLock();
 
@@ -902,10 +1090,12 @@ class HikaPokerApp {
       clearTimeout(this.botStepTimeout);
       this.botStepTimeout = null;
     }
+    this.botStepRemaining = 0;
     if (this.nextHandTimeout) {
       clearTimeout(this.nextHandTimeout);
       this.nextHandTimeout = null;
     }
+    this.nextHandRemaining = 0;
     if (this.runoutTimeouts && this.runoutTimeouts.length) {
       this.runoutTimeouts.forEach((t) => clearTimeout(t));
       this.runoutTimeouts = [];
