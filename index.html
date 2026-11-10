@@ -244,21 +244,21 @@
   <!-- =========================================================================
        3. VUE TABLE DE POKER EN DIRECT (TABLE VIEW)
        ========================================================================= -->
-  <section id="table-view" class="hidden flex-1 flex flex-col justify-between relative overflow-hidden p-2 md:p-4">
+  <section id="table-view" class="hidden flex-1 flex flex-col justify-between relative overflow-hidden p-1.5 sm:p-2 md:p-4">
     
     <!-- Table Header HUD -->
-    <div class="w-full max-w-5xl mx-auto flex items-center justify-between px-2 py-1 z-30">
-      <div class="flex items-center gap-2">
-        <button id="btn-leave-table" class="px-3 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold transition-colors">
+    <div id="table-hud-bar" class="w-full max-w-5xl mx-auto flex items-center justify-between px-1.5 sm:px-2 py-0.5 sm:py-1 z-30">
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <button id="btn-leave-table" class="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold transition-colors">
           ← Quitter
         </button>
-        <span class="text-xs md:text-sm font-black text-amber-300 drop-shadow" id="current-table-title">
+        <span class="text-xs sm:text-sm font-black text-amber-300 drop-shadow truncate max-w-[140px] sm:max-w-none" id="current-table-title">
           Table Amateur (10/20)
         </span>
       </div>
 
       <!-- HUD Tournoi (Visible en mode tournoi uniquement) -->
-      <div id="tournament-hud" class="hidden flex items-center gap-2 md:gap-3 bg-black/60 backdrop-blur-sm border border-amber-500/40 px-3 py-1 rounded-full text-xs">
+      <div id="tournament-hud" class="hidden flex items-center gap-1.5 sm:gap-3 bg-black/60 backdrop-blur-sm border border-amber-500/40 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs">
         <div class="flex items-center gap-1">
           <span class="text-slate-400">Joueurs :</span>
           <span class="font-black text-white" id="tourney-remaining">6/6</span>
@@ -266,14 +266,14 @@
         <span class="text-slate-600">|</span>
         <div class="flex items-center gap-1">
           <span class="font-bold text-amber-300" id="tourney-level">Niveau 1</span>
-          <span class="text-[10px] text-slate-400" id="tourney-blinds">(25/50)</span>
+          <span class="text-[9px] sm:text-[10px] text-slate-400" id="tourney-blinds">(25/50)</span>
         </div>
       </div>
 
       <!-- Thème du tapis -->
-      <div class="flex items-center gap-1.5">
-        <label for="table-theme-select" class="text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
-        <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-xs rounded-md px-1.5 py-0.5 outline-none">
+      <div class="flex items-center gap-1">
+        <label for="table-theme-select" class="text-[9px] sm:text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
+        <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none">
           <option value="green" selected>Feutre Vert</option>
           <option value="blue">Bleu Vegas</option>
           <option value="red">Rouge Velvet</option>
@@ -282,34 +282,34 @@
     </div>
 
     <!-- Conteneur Tapis de Poker Ovale Zynga -->
-    <div class="relative w-full max-w-5xl mx-auto flex-1 flex items-center justify-center my-1 md:my-2 min-h-[360px] md:min-h-[460px]">
+    <div id="poker-table-wrapper" class="relative w-full max-w-5xl mx-auto flex-1 flex items-center justify-center my-0.5 sm:my-1 md:my-2 overflow-visible">
       
       <!-- La Table Ovale -->
-      <div id="poker-table" class="relative w-full h-[340px] sm:h-[390px] md:h-[460px] felt-green poker-table-border flex items-center justify-center shadow-2xl transition-all duration-500">
+      <div id="poker-table" class="relative w-full h-[390px] sm:h-[400px] md:h-[460px] felt-green poker-table-border flex items-center justify-center shadow-2xl transition-all duration-300">
         <!-- Surpiqûre en cuir et ligne feutrée -->
         <div class="table-leather-stitch"></div>
         <div class="table-inner-ring"></div>
-        <div class="table-watermark text-xl sm:text-2xl md:text-4xl">HIKA POKER</div>
+        <div class="table-watermark text-lg sm:text-2xl md:text-4xl">HIKA POKER</div>
 
         <!-- Sièges Joueurs (6 places absolues autour de la table) -->
         <div id="seats-container" class="absolute inset-0 pointer-events-auto"></div>
 
-        <!-- Centre de la Table : Pot & Board Cards -->
-        <div class="flex flex-col items-center justify-center z-10 pointer-events-none -mt-4 md:-mt-6">
+        <!-- Centre de la Table : Pot & Board Cards (Positionnement absolu garanti centré) -->
+        <div class="center-table-group absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-10 pointer-events-none">
           
           <!-- Pot Principal & Annexes -->
-          <div id="table-pot-container" class="flex flex-col items-center mb-2 animate-fade-in">
-            <div class="flex items-center gap-1.5 bg-black/75 backdrop-blur-sm px-3.5 py-1 rounded-full border border-amber-400/80 shadow-2xl">
-              <div class="w-4 h-4 rounded-full poker-chip chip-gold text-[9px] font-black">★</div>
-              <span class="text-xs font-black text-slate-300 tracking-wider">POT :</span>
-              <span class="text-sm md:text-base font-black text-amber-300 tracking-wider" id="pot-amount-text">0</span>
+          <div id="table-pot-container" class="flex flex-col items-center mb-1 sm:mb-2 animate-fade-in">
+            <div class="flex items-center gap-1.5 bg-black/75 backdrop-blur-sm px-2.5 sm:px-3.5 py-0.5 sm:py-1 rounded-full border border-amber-400/80 shadow-2xl">
+              <div class="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full poker-chip chip-gold text-[8px] sm:text-[9px] font-black">★</div>
+              <span class="text-[10px] sm:text-xs font-black text-slate-300 tracking-wider">POT :</span>
+              <span class="text-xs sm:text-sm md:text-base font-black text-amber-300 tracking-wider" id="pot-amount-text">0</span>
             </div>
             <!-- Pots annexes -->
-            <div id="side-pots-container" class="flex gap-1.5 mt-1"></div>
+            <div id="side-pots-container" class="flex gap-1 mt-0.5 sm:mt-1"></div>
           </div>
 
           <!-- Cartes du Board (Flop, Turn, River) -->
-          <div id="community-cards" class="flex items-center gap-1.5 md:gap-2.5 min-h-[76px] md:min-h-[96px]">
+          <div id="community-cards" class="flex items-center gap-1 sm:gap-1.5 md:gap-2.5">
             <!-- Généré dynamiquement avec animation 3D -->
           </div>
 
@@ -325,16 +325,16 @@
     <!-- =========================================================================
          4. PANNEAU DE CONTRÔLE JOUEUR (ACTION BAR & PRÉ-ACTIONS)
          ========================================================================= -->
-    <div class="w-full max-w-3xl mx-auto z-30 flex flex-col items-center">
+    <div id="action-bar-container" class="w-full max-w-3xl mx-auto z-30 flex flex-col items-center relative">
       
       <!-- Combinaison Actuelle du Joueur -->
-      <div class="mb-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/30 text-center shadow-lg">
-        <span class="text-[11px] font-bold text-slate-300">Votre main : </span>
-        <span class="text-xs font-black text-amber-300" id="my-hand-rank-text">En attente de la main...</span>
+      <div id="my-hand-badge-container" class="mb-1 sm:mb-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/30 text-center shadow-lg">
+        <span class="text-[10px] sm:text-[11px] font-bold text-slate-300">Votre main : </span>
+        <span class="text-[11px] sm:text-xs font-black text-amber-300" id="my-hand-rank-text">En attente de la main...</span>
       </div>
 
-      <!-- Curseur de Relance Drawer (Raise Slider) -->
-      <div id="raise-slider-container" class="hidden w-full bg-slate-950/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-3 mb-2 flex-col gap-2.5 shadow-2xl animate-fade-in">
+      <!-- Curseur de Relance Drawer (Raise Slider flottant sans casser le flux) -->
+      <div id="raise-slider-container" class="hidden absolute bottom-14 sm:bottom-16 left-1/2 -translate-x-1/2 w-[95%] max-w-md bg-slate-950/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-2.5 sm:p-3 flex-col gap-2 shadow-2xl z-50 animate-fade-in">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-slate-300">Ajuster la mise :</span>
           <div class="flex items-center gap-1">

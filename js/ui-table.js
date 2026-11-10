@@ -29,12 +29,14 @@ class TableUI {
     this.seatsContainer = document.getElementById('seats-container');
   }
 
-  // Création du HTML pour une carte
-  createCardHTML(cardStr, isFlipped = false, isWinning = false) {
+  // Création du HTML pour une carte (supporte human, board, bot)
+  createCardHTML(cardStr, isFlipped = false, isWinning = false, cardType = 'board') {
+    const cardClass = cardType === 'human' ? 'poker-card-human' : cardType === 'bot' ? 'poker-card-bot' : 'poker-card-board';
+
     if (!cardStr) {
       // Dos de la carte
       return `
-        <div class="poker-card ${isWinning ? 'card-winning-glow' : ''}">
+        <div class="poker-card ${cardClass} ${isWinning ? 'card-winning-glow' : ''}">
           <div class="card-inner">
             <div class="card-back"></div>
             <div class="card-front"></div>
@@ -52,21 +54,32 @@ class TableUI {
     const isRed = info.color === 'red';
     const suitClass = isRed ? 'suit-red' : 'suit-black';
 
+    // Tailles typographiques adaptées selon le type de carte
+    let rankTextSize = 'text-[11px] md:text-sm';
+    let centerSuitSize = 'text-base md:text-2xl';
+    if (cardType === 'bot') {
+      rankTextSize = 'text-[8px] sm:text-[9px]';
+      centerSuitSize = 'text-[10px] sm:text-xs';
+    } else if (cardType === 'human') {
+      rankTextSize = 'text-xs sm:text-sm md:text-base';
+      centerSuitSize = 'text-lg sm:text-2xl md:text-3xl';
+    }
+
     return `
-      <div class="poker-card ${isWinning ? 'card-winning-glow' : ''}" data-card="${cardStr}">
+      <div class="poker-card ${cardClass} ${isWinning ? 'card-winning-glow' : ''}" data-card="${cardStr}">
         <div class="card-inner ${isFlipped ? 'flipped' : ''}">
           <div class="card-back"></div>
           <div class="card-front ${suitClass}">
             <div class="flex flex-col items-center leading-none text-left self-start">
-              <span class="text-xs md:text-sm font-black">${info.rankChar}</span>
-              <span class="text-xs md:text-sm -mt-0.5">${info.symbol}</span>
+              <span class="${rankTextSize} font-black">${info.rankChar}</span>
+              <span class="${rankTextSize} -mt-0.5">${info.symbol}</span>
             </div>
-            <div class="text-xl md:text-2xl self-center font-bold">
+            <div class="${centerSuitSize} self-center font-bold">
               ${info.symbol}
             </div>
             <div class="flex flex-col items-center leading-none text-right self-end transform rotate-180">
-              <span class="text-xs md:text-sm font-black">${info.rankChar}</span>
-              <span class="text-xs md:text-sm -mt-0.5">${info.symbol}</span>
+              <span class="${rankTextSize} font-black">${info.rankChar}</span>
+              <span class="${rankTextSize} -mt-0.5">${info.symbol}</span>
             </div>
           </div>
         </div>
@@ -83,7 +96,7 @@ class TableUI {
       const isNew = !this.lastBoardCards.includes(cStr);
       const isWinning = winningCards.includes(cStr);
       const cardWrapper = document.createElement('div');
-      cardWrapper.innerHTML = this.createCardHTML(cStr, !isNew, isWinning);
+      cardWrapper.innerHTML = this.createCardHTML(cStr, !isNew, isWinning, 'board');
       const cardEl = cardWrapper.firstElementChild;
       this.boardEl.appendChild(cardEl);
 
@@ -112,7 +125,7 @@ class TableUI {
     if (sidePotsEl) {
       if (potsList && potsList.length > 1) {
         sidePotsEl.innerHTML = potsList.map((p, i) => `
-          <div class="px-2 py-0.5 bg-black/60 border border-amber-500/40 rounded-full text-[10px] text-amber-200 font-bold">
+          <div class="px-2 py-0.5 bg-black/60 border border-amber-500/40 rounded-full text-[9px] sm:text-[10px] text-amber-200 font-bold">
             Pot ${i + 1}: ${p.amount.toLocaleString()}
           </div>
         `).join('');
@@ -145,8 +158,8 @@ class TableUI {
         // Siège vide
         seatDiv.innerHTML = `
           <div class="flex flex-col items-center opacity-30">
-            <div class="w-14 h-14 md:w-16 md:h-16 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center">
-              <span class="text-xs text-slate-400 font-bold">VIDE</span>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-slate-500 flex items-center justify-center">
+              <span class="text-[10px] text-slate-400 font-bold">VIDE</span>
             </div>
           </div>
         `;
@@ -163,49 +176,62 @@ class TableUI {
       // Cartes du joueur
       let cardsHTML = '';
       if (p.inHand && !isFolded) {
-        if (p.hole && p.hole.length === 2) {
-          // Cartes visibles (joueur humain ou showdown)
-          const c1Winning = winningCards.includes(p.hole[0]);
-          const c2Winning = winningCards.includes(p.hole[1]);
-          cardsHTML = `
-            <div class="flex -space-x-4 md:-space-x-5 mb-1 transition-transform ${isHuman ? 'hover:-translate-y-1' : ''}">
+        if (isHuman) {
+          // Joueur humain : cartes toujours visibles
+          if (p.hole && p.hole.length === 2) {
+            const c1Winning = winningCards.includes(p.hole[0]);
+            const c2Winning = winningCards.includes(p.hole[1]);
+            cardsHTML = `
+              <div class="transform -rotate-6 origin-bottom-right transition-transform hover:-translate-y-1">
+                ${this.createCardHTML(p.hole[0], true, c1Winning, 'human')}
+              </div>
+              <div class="transform rotate-6 origin-bottom-left transition-transform hover:-translate-y-1">
+                ${this.createCardHTML(p.hole[1], true, c2Winning, 'human')}
+              </div>
+            `;
+          }
+        } else {
+          // Bots : mini-cartes
+          if (p.hole && p.hole.length === 2) {
+            // Cartes révélées (showdown / all-in)
+            const c1Winning = winningCards.includes(p.hole[0]);
+            const c2Winning = winningCards.includes(p.hole[1]);
+            cardsHTML = `
               <div class="transform -rotate-6 origin-bottom-right">
-                ${this.createCardHTML(p.hole[0], true, c1Winning)}
+                ${this.createCardHTML(p.hole[0], true, c1Winning, 'bot')}
               </div>
               <div class="transform rotate-6 origin-bottom-left">
-                ${this.createCardHTML(p.hole[1], true, c2Winning)}
+                ${this.createCardHTML(p.hole[1], true, c2Winning, 'bot')}
               </div>
-            </div>
-          `;
-        } else if (p.holeCount === 2) {
-          // Cartes fermées des bots
-          cardsHTML = `
-            <div class="flex -space-x-5 mb-1">
+            `;
+          } else if (p.holeCount === 2) {
+            // Dos de mini-cartes pour les bots actifs
+            cardsHTML = `
               <div class="transform -rotate-6 origin-bottom-right">
-                ${this.createCardHTML(null)}
+                ${this.createCardHTML(null, false, false, 'bot')}
               </div>
               <div class="transform rotate-6 origin-bottom-left">
-                ${this.createCardHTML(null)}
+                ${this.createCardHTML(null, false, false, 'bot')}
               </div>
-            </div>
-          `;
+            `;
+          }
         }
       }
 
       // Badge du Dealer
       const dealerBadge = p.isDealer ? `
-        <div class="dealer-btn absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center font-black text-xs z-20">
+        <div class="dealer-btn absolute -top-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black text-[10px] sm:text-xs z-20">
           D
         </div>
       ` : '';
 
       // Badges Blinds
       const blindBadge = p.isSmallBlind ? `
-        <div class="blind-badge absolute -top-1 -left-1 px-1.5 py-0.2 rounded-full font-bold text-[9px] z-20">
+        <div class="blind-badge absolute -top-1 -left-1 px-1 py-0.2 rounded-full font-bold text-[8px] sm:text-[9px] z-20">
           SB
         </div>
       ` : p.isBigBlind ? `
-        <div class="blind-badge absolute -top-1 -left-1 px-1.5 py-0.2 rounded-full font-bold text-[9px] z-20">
+        <div class="blind-badge absolute -top-1 -left-1 px-1 py-0.2 rounded-full font-bold text-[8px] sm:text-[9px] z-20">
           BB
         </div>
       ` : '';
@@ -232,7 +258,7 @@ class TableUI {
         const lbl = actionLabels[p.lastAction] || p.lastAction.toUpperCase();
         const cls = actionBg[p.lastAction] || 'bg-slate-800 text-white border-slate-600';
         statusBadge = `
-          <div class="absolute -bottom-2.5 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase border shadow-md z-20 ${cls}">
+          <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-1.5 py-0.2 rounded-full text-[8px] sm:text-[9px] font-black tracking-wider uppercase border shadow-md z-20 ${cls}">
             ${lbl}
           </div>
         `;
@@ -240,9 +266,9 @@ class TableUI {
 
       // Jeton de mise en cours sur la table
       const betChip = p.bet > 0 ? `
-        <div class="player-bet-chip absolute ${this.getBetPositionClass(uiIdx)} flex items-center gap-1 bg-black/70 px-2 py-0.5 rounded-full border border-amber-400/60 shadow-lg z-10 animate-fade-in">
-          <div class="w-3.5 h-3.5 rounded-full poker-chip chip-gold text-[8px]">★</div>
-          <span class="text-xs font-black text-amber-300">${p.bet.toLocaleString()}</span>
+        <div class="player-bet-chip absolute ${this.getBetPositionClass(uiIdx)} flex items-center gap-1 bg-black/75 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/60 shadow-lg z-25 animate-fade-in pointer-events-none">
+          <div class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full poker-chip chip-gold text-[7px] sm:text-[8px]">★</div>
+          <span class="text-[10px] sm:text-xs font-black text-amber-300">${p.bet.toLocaleString()}</span>
         </div>
       ` : '';
 
@@ -250,43 +276,83 @@ class TableUI {
       const avatarIcon = p.avatar || (isHuman ? '👤' : '🤖');
       const avatarBg = p.isBot ? (p.meta && p.meta.avatarBg ? p.meta.avatarBg : 'from-indigo-600 to-slate-800') : 'from-amber-500 to-yellow-600';
 
-      seatDiv.innerHTML = `
-        <div class="flex flex-col items-center relative ${isFolded ? 'opacity-40 grayscale' : ''}">
-          <!-- Cartes du joueur -->
-          <div class="player-cards-wrapper z-10">
-            ${cardsHTML}
-          </div>
-
-          <!-- Avatar & Timer -->
-          <div class="relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${avatarBg} p-0.5 shadow-xl flex items-center justify-center border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-slate-700'}">
-            <!-- Timer circulaire SVG -->
-            <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
-              <svg class="timer-svg" viewBox="0 0 100 100">
-                <circle class="timer-track" cx="50" cy="50" r="46"></circle>
-                <circle class="timer-bar" id="timer-bar-${uiIdx}" cx="50" cy="50" r="46"></circle>
-              </svg>
+      if (isHuman) {
+        // Layout Joueur Humain (Hero Pod compact côte-à-côte pour zéro collision)
+        seatDiv.innerHTML = `
+          <div class="hero-seat-pod flex items-center gap-1.5 sm:gap-2.5 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-2xl border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-amber-500/40'} shadow-2xl relative ${isFolded ? 'opacity-40 grayscale' : ''}">
+            <!-- Avatar & Infos Joueur -->
+            <div class="flex flex-col items-center">
+              <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 p-0.5 shadow-md flex items-center justify-center">
+                <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
+                  <svg class="timer-svg" viewBox="0 0 100 100">
+                    <circle class="timer-track" cx="50" cy="50" r="46"></circle>
+                    <circle class="timer-bar" id="timer-bar-${uiIdx}" cx="50" cy="50" r="46"></circle>
+                  </svg>
+                </div>
+                <span class="text-xl sm:text-2xl">${avatarIcon}</span>
+                ${dealerBadge}
+                ${blindBadge}
+                ${statusBadge}
+              </div>
+              
+              <div class="mt-0.5 flex flex-col items-center">
+                <span class="text-[9px] sm:text-[10px] md:text-[11px] font-bold text-slate-200 truncate max-w-[65px] sm:max-w-[75px]">${p.name}</span>
+                <div class="flex items-center gap-0.5">
+                  <span class="text-[8px] sm:text-[9px]">🪙</span>
+                  <span class="text-[9px] sm:text-[10px] md:text-[11px] font-black text-amber-300">${isBusted ? 'OUT' : p.chips.toLocaleString()}</span>
+                </div>
+              </div>
             </div>
 
-            <!-- Icône / Emoji Avatar -->
-            <span class="text-2xl md:text-3xl select-none">${avatarIcon}</span>
+            <!-- Cartes Privées Humain -->
+            ${!isFolded && cardsHTML ? `
+              <div class="hero-hole-cards flex -space-x-3 sm:-space-x-4 pl-0.5">
+                ${cardsHTML}
+              </div>
+            ` : ''}
 
-            ${dealerBadge}
-            ${blindBadge}
-            ${statusBadge}
+            ${betChip}
           </div>
+        `;
+      } else {
+        // Layout Bots (Compact vertical, mini-cartes non encombrantes)
+        seatDiv.innerHTML = `
+          <div class="bot-seat-pod flex flex-col items-center relative ${isFolded ? 'opacity-35 grayscale' : ''}">
+            <!-- Mini Cartes du Bot (seulement si en jeu et non couché) -->
+            ${!isFolded && cardsHTML ? `
+              <div class="bot-cards-wrapper absolute -top-3.5 z-10 flex -space-x-2">
+                ${cardsHTML}
+              </div>
+            ` : ''}
 
-          <!-- Info Joueur : Nom & Solde -->
-          <div class="mt-1 flex flex-col items-center bg-slate-900/90 backdrop-blur-sm px-2.5 py-0.5 rounded-lg border border-slate-700 shadow-md min-w-[70px] md:min-w-[85px]">
-            <span class="text-[11px] font-bold text-slate-200 truncate max-w-[80px]">${p.name}</span>
-            <div class="flex items-center gap-1">
-              <span class="text-[10px] text-amber-400 font-extrabold">🪙</span>
-              <span class="text-[11px] font-black text-amber-300">${isBusted ? 'ÉLIMINÉ' : p.chips.toLocaleString()}</span>
+            <!-- Avatar & Timer -->
+            <div class="relative w-9 h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 rounded-full bg-gradient-to-br ${avatarBg} p-0.5 shadow-xl flex items-center justify-center border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-slate-700'}">
+              <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
+                <svg class="timer-svg" viewBox="0 0 100 100">
+                  <circle class="timer-track" cx="50" cy="50" r="46"></circle>
+                  <circle class="timer-bar" id="timer-bar-${uiIdx}" cx="50" cy="50" r="46"></circle>
+                </svg>
+              </div>
+
+              <span class="text-lg sm:text-xl md:text-2xl select-none">${avatarIcon}</span>
+              ${dealerBadge}
+              ${blindBadge}
+              ${statusBadge}
             </div>
-          </div>
 
-          ${betChip}
-        </div>
-      `;
+            <!-- Info Joueur : Nom & Solde -->
+            <div class="mt-0.5 flex flex-col items-center bg-slate-900/90 backdrop-blur-sm px-1.5 py-0.5 rounded-md border border-slate-700 shadow-md">
+              <span class="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-slate-200 truncate max-w-[55px] sm:max-w-[70px]">${p.name}</span>
+              <div class="flex items-center gap-0.5">
+                <span class="text-[8px]">🪙</span>
+                <span class="text-[8px] sm:text-[9px] md:text-[10px] font-black text-amber-300">${isBusted ? 'OUT' : p.chips.toLocaleString()}</span>
+              </div>
+            </div>
+
+            ${betChip}
+          </div>
+        `;
+      }
 
       this.seatsContainer.appendChild(seatDiv);
     }
@@ -294,12 +360,12 @@ class TableUI {
 
   getBetPositionClass(uiIdx) {
     switch (uiIdx) {
-      case 0: return '-top-7 left-1/2 -translate-x-1/2'; // Bas centre vers le pot
-      case 1: return '-top-2 -right-8';                  // Bas gauche vers le centre
-      case 2: return '-bottom-2 -right-8';               // Haut gauche vers le centre
-      case 3: return '-bottom-7 left-1/2 -translate-x-1/2'; // Haut centre vers le pot
-      case 4: return '-bottom-2 -left-8';                // Haut droite vers le centre
-      case 5: return '-top-2 -left-8';                   // Bas droite vers le centre
+      case 0: return '-top-6 left-1/2 -translate-x-1/2'; // Bas centre vers le pot
+      case 1: return '-right-6 top-1/2 -translate-y-1/2'; // Bas gauche vers le centre
+      case 2: return '-right-6 top-1/2 -translate-y-1/2'; // Haut gauche vers le centre
+      case 3: return '-bottom-6 left-1/2 -translate-x-1/2'; // Haut centre vers le pot
+      case 4: return '-left-6 top-1/2 -translate-y-1/2';  // Haut droite vers le centre
+      case 5: return '-left-6 top-1/2 -translate-y-1/2';  // Bas droite vers le centre
       default: return '-top-6 left-1/2';
     }
   }

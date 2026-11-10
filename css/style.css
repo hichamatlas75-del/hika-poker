@@ -76,17 +76,63 @@
    CARTES DE POKER & ANIMATION 3D
    ========================================================================== */
 .poker-card {
-  width: 52px;
-  height: 74px;
   perspective: 1000px;
   user-select: none;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+  flex-shrink: 0;
 }
 
-@media (min-width: 768px) {
-  .poker-card {
+/* 1. Cartes du Joueur Humain (Grandes & Nettes) */
+.poker-card-human {
+  width: 44px;
+  height: 64px;
+}
+@media (min-width: 640px) {
+  .poker-card-human {
+    width: 52px;
+    height: 74px;
+  }
+}
+@media (min-width: 1024px) {
+  .poker-card-human {
     width: 64px;
     height: 92px;
+  }
+}
+
+/* 2. Cartes du Board (Flop, Turn, River) */
+.poker-card-board {
+  width: 36px;
+  height: 52px;
+}
+@media (min-width: 640px) {
+  .poker-card-board {
+    width: 46px;
+    height: 66px;
+  }
+}
+@media (min-width: 1024px) {
+  .poker-card-board {
+    width: 58px;
+    height: 84px;
+  }
+}
+
+/* 3. Mini-Cartes des Bots */
+.poker-card-bot {
+  width: 24px;
+  height: 35px;
+}
+@media (min-width: 640px) {
+  .poker-card-bot {
+    width: 28px;
+    height: 40px;
+  }
+}
+@media (min-width: 1024px) {
+  .poker-card-bot {
+    width: 34px;
+    height: 48px;
   }
 }
 
@@ -351,7 +397,11 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   box-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
-/* Positions des 6 sièges autour de la table ovale */
+/* ==========================================================================
+   POSITIONS DES 6 SIÈGES ET ADAPTATION MOBILE VERTICAL & HORIZONTAL
+   ========================================================================== */
+
+/* 1. Positions par défaut (Desktop & Écran large) */
 .seat-pos-0 {
   bottom: 8px;
   left: 50%;
@@ -360,12 +410,12 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 }
 .seat-pos-1 {
   bottom: 22%;
-  left: 3%;
+  left: 4%;
   z-index: 20;
 }
 .seat-pos-2 {
   top: 18%;
-  left: 3%;
+  left: 4%;
   z-index: 20;
 }
 .seat-pos-3 {
@@ -376,19 +426,170 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 }
 .seat-pos-4 {
   top: 18%;
-  right: 3%;
+  right: 4%;
   z-index: 20;
 }
 .seat-pos-5 {
   bottom: 22%;
-  right: 3%;
+  right: 4%;
   z-index: 20;
 }
 
-@media (max-width: 640px) {
-  .seat-pos-1 { left: 1%; bottom: 24%; }
-  .seat-pos-2 { left: 1%; top: 16%; }
-  .seat-pos-4 { right: 1%; top: 16%; }
-  .seat-pos-5 { right: 1%; bottom: 24%; }
+/* 2. Optimisation Mobile Vertical (Portrait) */
+@media (max-width: 768px) and (orientation: portrait) {
+  #poker-table {
+    height: clamp(380px, 52vh, 440px) !important;
+    border-radius: 95px !important;
+    border-width: 7px !important;
+  }
+  .table-leather-stitch {
+    border-radius: 88px !important;
+    inset: 4px !important;
+  }
+  .table-inner-ring {
+    border-radius: 80px !important;
+    inset: 16px !important;
+  }
+
+  /* Sièges espacés verticalement pour zéro chevauchement */
+  .seat-pos-0 {
+    bottom: 6px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .seat-pos-1 {
+    bottom: 24% !important;
+    left: 4px !important;
+  }
+  .seat-pos-2 {
+    top: 20% !important;
+    left: 4px !important;
+  }
+  .seat-pos-3 {
+    top: 6px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .seat-pos-4 {
+    top: 20% !important;
+    right: 4px !important;
+  }
+  .seat-pos-5 {
+    bottom: 24% !important;
+    right: 4px !important;
+  }
 }
+
+/* 3. Optimisation Mobile Horizontal (Paysage) */
+@media (orientation: landscape) and (max-height: 550px) {
+  /* Header ultra-compact */
+  header {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    height: 36px !important;
+  }
+  header .font-casino {
+    font-size: 13px !important;
+  }
+
+  /* Section de la table occupe 100% de la hauteur sans scroll vertical */
+  #table-view {
+    padding: 2px 6px !important;
+    height: calc(100dvh - 36px) !important;
+    max-height: calc(100dvh - 36px) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  #table-hud-bar {
+    padding: 0 4px !important;
+    height: 20px !important;
+  }
+  #current-table-title {
+    font-size: 11px !important;
+  }
+
+  #poker-table-wrapper {
+    min-height: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  #poker-table {
+    height: min(230px, calc(100dvh - 120px)) !important;
+    border-radius: 120px !important;
+    border-width: 6px !important;
+  }
+  .table-leather-stitch {
+    border-radius: 114px !important;
+    inset: 3px !important;
+  }
+  .table-inner-ring {
+    border-radius: 106px !important;
+    inset: 12px !important;
+  }
+
+  /* Sièges resserrés en hauteur pour ovale paysage */
+  .seat-pos-0 {
+    bottom: 2px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .seat-pos-1 {
+    bottom: 10% !important;
+    left: 5% !important;
+  }
+  .seat-pos-2 {
+    top: 10% !important;
+    left: 5% !important;
+  }
+  .seat-pos-3 {
+    top: 2px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .seat-pos-4 {
+    top: 10% !important;
+    right: 5% !important;
+  }
+  .seat-pos-5 {
+    bottom: 10% !important;
+    right: 5% !important;
+  }
+
+  /* Contrôles compacts en bas */
+  #action-bar-container {
+    padding-bottom: 2px !important;
+  }
+  #action-bar {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    gap: 6px !important;
+  }
+  .btn-zynga {
+    padding: 6px 6px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+  }
+  .btn-zynga span:last-child {
+    display: none !important;
+  }
+
+  #pre-action-bar {
+    padding: 3px 8px !important;
+    font-size: 10px !important;
+  }
+
+  #my-hand-badge-container {
+    margin-bottom: 2px !important;
+    padding: 1px 8px !important;
+  }
+  #my-hand-rank-text {
+    font-size: 10px !important;
+  }
+}
+
 
