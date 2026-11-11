@@ -1048,3 +1048,67 @@ input[type=range].raise-slider::-webkit-slider-thumb {
 #stats-panel-leaderboard::-webkit-scrollbar-thumb:hover {
   background: rgba(245, 158, 11, 0.8);
 }
+
+/* =========================================================================
+   7. STYLES HAND REPLAYER INTERACTIF & PARTICULES FEUX D'ARTIFICE
+   ========================================================================= */
+
+/* Mini-Tapis Feutre du Hand Replayer */
+#replayer-mini-felt {
+  background: radial-gradient(ellipse at center, #065f46 0%, #064e3b 60%, #022c22 100%);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.85), 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+/* Cartes du Hand Replayer */
+.replayer-card-slot {
+  width: 32px;
+  height: 46px;
+  perspective: 600px;
+}
+@media (min-width: 640px) {
+  .replayer-card-slot {
+    width: 38px;
+    height: 52px;
+  }
+}
+
+/* Stepper du Hand Replayer */
+.replayer-step-btn.step-active {
+  background: linear-gradient(to right, #f59e0b, #eab308) !important;
+  color: #020617 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
+  font-weight: 900 !important;
+}
+.replayer-step-btn.step-completed {
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  color: #34d399 !important;
+}
+
+/* Bandeau Gros Pot Remporté (>50x BB) */
+#big-pot-banner {
+  animation: bigPotGlow 1.8s infinite alternate ease-in-out;
+}
+@keyframes bigPotGlow {
+  0% {
+    filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.45));
+  }
+  100% {
+    filter: drop-shadow(0 0 35px rgba(234, 179, 8, 0.95)) drop-shadow(0 0 55px rgba(245, 158, 11, 0.55));
+  }
+}
+
+/* Galerie d'Avatars VIP Zynga */
+.vip-avatar-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.vip-avatar-card:hover {
+  transform: translateY(-2px) scale(1.06);
+  border-color: #f59e0b;
+}
+.vip-avatar-card.avatar-selected {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.22) !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.55);
+  transform: scale(1.08);
+}
+

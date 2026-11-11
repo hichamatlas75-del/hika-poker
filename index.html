@@ -702,7 +702,16 @@
             <span class="text-[11px] font-bold text-slate-300">Modifier votre Avatar :</span>
             <span class="text-[10px] text-amber-400 font-semibold" id="auth-selected-avatar-preview">Actuel : 👑</span>
           </div>
-          <div class="grid grid-cols-8 gap-1.5" id="profile-avatar-grid">
+          <!-- Sous-onglets Galerie VIP vs Émojis -->
+          <div class="flex gap-1 mb-2 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
+            <button type="button" id="tab-avatar-vip" class="flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all">
+              👑 Avatars VIP Zynga (10)
+            </button>
+            <button type="button" id="tab-avatar-emoji" class="flex-1 py-1 rounded text-slate-400 hover:text-white transition-all">
+              😀 Émojis (16)
+            </button>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5" id="profile-avatar-grid">
             <!-- Rempli dynamiquement -->
           </div>
         </div>
@@ -790,7 +799,16 @@
             <span class="text-[11px] font-bold text-slate-300">Avatar Invité :</span>
             <span class="text-[10px] text-amber-400 font-semibold" id="guest-selected-avatar-preview">Actuel : 👑</span>
           </div>
-          <div class="grid grid-cols-8 gap-1.5" id="guest-avatar-grid">
+          <!-- Sous-onglets Galerie VIP vs Émojis -->
+          <div class="flex gap-1 mb-2 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
+            <button type="button" id="tab-guest-avatar-vip" class="flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all">
+              👑 Avatars VIP Zynga (10)
+            </button>
+            <button type="button" id="tab-guest-avatar-emoji" class="flex-1 py-1 rounded text-slate-400 hover:text-white transition-all">
+              😀 Émojis (16)
+            </button>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5" id="guest-avatar-grid">
             <!-- Rempli dynamiquement -->
           </div>
         </div>
@@ -849,6 +867,10 @@
           <span>🏆</span>
           <span>TOP 10</span>
         </button>
+        <button id="tab-stats-settings" class="flex-1 py-1.5 rounded-lg text-[11px] sm:text-xs font-black transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1">
+          <span>⚙️</span>
+          <span>OPTIONS</span>
+        </button>
       </div>
 
       <!-- CONTENU ONGLET 1 : VUE D'ENSEMBLE STATS -->
@@ -905,6 +927,103 @@
         </div>
         <div id="stats-leaderboard-list" class="space-y-1.5">
           <!-- Injecté dynamiquement par JS -->
+        </div>
+      </div>
+
+      <!-- CONTENU ONGLET 4 : PARAMÈTRES DU JEU -->
+      <div id="stats-panel-settings" class="hidden flex-col overflow-y-auto space-y-3.5 pr-1 max-h-[380px]">
+        <!-- 1. Cartes 4 Couleurs Optionnelles Internationales -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🃏</span>
+              <div>
+                <h4 class="text-xs font-black text-white">Jeu de Cartes 4 Couleurs (International)</h4>
+                <p class="text-[10px] text-slate-400 leading-tight">Option officielle pour joueurs réguliers. Différencie instantanément chaque famille.</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" id="setting-four-color-deck" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
+          <!-- Aperçu visuel des 4 couleurs de cartes -->
+          <div class="grid grid-cols-4 gap-2 pt-1">
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-black block leading-none">♠</span>
+              <span class="text-[10px] font-bold text-slate-300 mt-1 block">Pique</span>
+              <span class="text-[9px] text-slate-400 font-mono">Noir</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-red block leading-none">♥</span>
+              <span class="text-[10px] font-bold text-red-400 mt-1 block">Cœur</span>
+              <span class="text-[9px] text-red-300 font-mono">Rouge</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-blue block leading-none">♦</span>
+              <span class="text-[10px] font-bold text-blue-400 mt-1 block">Carreau</span>
+              <span class="text-[9px] text-blue-300 font-mono">Bleu</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-green block leading-none">♣</span>
+              <span class="text-[10px] font-bold text-emerald-400 mt-1 block">Trèfle</span>
+              <span class="text-[9px] text-emerald-300 font-mono">Vert</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Thème du Tapis de Poker -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎰</span>
+            <div>
+              <h4 class="text-xs font-black text-white">Thème du Tapis de Poker</h4>
+              <p class="text-[10px] text-slate-400 leading-tight">Couleur du feutre feutré pour les tables Cash Game et Tournois.</p>
+            </div>
+          </div>
+          <select id="settings-theme-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer">
+            <option value="green">Feutre Vert Casino (Classique Las Vegas)</option>
+            <option value="blue">Bleu Royal Bellagio (High Roller)</option>
+            <option value="red">Rouge Ruby Monaco (VIP Lounge)</option>
+            <option value="black">Noir Velvet Macau (Prestige)</option>
+          </select>
+        </div>
+
+        <!-- 3. Ambiance Sonore & Audio -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🔊</span>
+              <div>
+                <h4 class="text-xs font-black text-white">Effets Sonores & Clameur</h4>
+                <p class="text-[10px] text-slate-400 leading-tight">Cartes, jetons, double-knock et applaudissements du public.</p>
+              </div>
+            </div>
+            <button id="settings-btn-toggle-sound" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400/50 text-xs font-bold text-slate-200 transition-colors cursor-pointer">
+              🔊 Activé
+            </button>
+          </div>
+          <div class="flex items-center gap-3 pt-1">
+            <span class="text-[10px] text-slate-400 font-bold">Volume :</span>
+            <input type="range" id="settings-sound-volume" min="0" max="100" value="80" class="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <span id="settings-sound-volume-val" class="text-[11px] font-bold text-amber-300 w-8 text-right">80%</span>
+          </div>
+        </div>
+
+        <!-- 4. Vibrations Haptiques Mobile -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📳</span>
+            <div>
+              <h4 class="text-xs font-black text-white">Vibrations Haptiques</h4>
+              <p class="text-[10px] text-slate-400 leading-tight">Retours vibratoires sur smartphone lors des tours et all-in.</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer select-none">
+            <input type="checkbox" id="settings-toggle-haptics" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
         </div>
       </div>
 
@@ -1064,44 +1183,126 @@
     </div>
   </div>
 
-  <!-- Modal Revoir la Dernière Main (Hand Replayer) -->
-  <div id="hand-replayer-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
-    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
-      <button id="btn-close-hand-replayer" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer">
+  <!-- Modal Revoir la Dernière Main (Hand Replayer Interactif Carte par Carte) -->
+  <div id="hand-replayer-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-2 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-4 sm:p-5 max-w-2xl w-full shadow-2xl relative flex flex-col max-h-[95vh] overflow-hidden animate-fade-in">
+      <button id="btn-close-hand-replayer" class="absolute top-3.5 right-3.5 text-slate-400 hover:text-white text-base font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer z-10">
         ✕
       </button>
 
       <!-- En-tête -->
-      <div class="flex items-center gap-3 mb-4">
-        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shadow-md">
-          👁️
-        </div>
-        <div>
-          <div class="flex items-center gap-2">
-            <h3 class="text-base sm:text-lg font-black text-white">Revue de la Dernière Main</h3>
-            <span id="replayer-hand-time" class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full"></span>
+      <div class="flex items-center justify-between mb-2.5 pr-8">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-lg shadow-md">
+            👁️
           </div>
-          <p id="replayer-table-name" class="text-[11px] sm:text-xs text-amber-300 font-semibold">Table Amateur • Pot : 0 🪙</p>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-sm sm:text-base font-black text-white">Relecture Interactive du Coup</h3>
+              <span id="replayer-mode-badge" class="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">Carte par Carte</span>
+            </div>
+            <p id="replayer-table-name" class="text-[10px] sm:text-[11px] text-amber-300 font-semibold truncate max-w-[260px] sm:max-w-none">Table • Pot : 0 🪙</p>
+          </div>
+        </div>
+
+        <!-- Vitesse de lecture -->
+        <div class="flex items-center gap-1 bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800 text-[10px] text-slate-400">
+          <span class="hidden sm:inline">Vitesse :</span>
+          <select id="replayer-speed-select" class="bg-slate-900 text-amber-300 font-bold text-[10px] rounded px-1 py-0.5 outline-none cursor-pointer">
+            <option value="1400">1x (Normal)</option>
+            <option value="900" selected>1.5x (Rapide)</option>
+            <option value="550">2x (Turbo)</option>
+          </select>
         </div>
       </div>
 
-      <!-- Zone Cartes du Board -->
-      <div class="bg-slate-950/90 rounded-2xl p-3 border border-slate-800 mb-3 flex flex-col items-center">
-        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Cartes du Tapis (Board Commun)</span>
-        <div id="replayer-board-cards" class="flex items-center justify-center gap-1.5 sm:gap-2 min-h-[50px]">
-          <span class="text-xs text-slate-500 italic">Aucune carte communautaire</span>
+      <!-- Barre de progression des Streets (Interactive Stepper) -->
+      <div class="flex items-center justify-between gap-1 mb-2.5 bg-slate-950/90 p-1 rounded-xl border border-slate-800" id="replayer-stepper">
+        <button data-step="0" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all bg-amber-500 text-slate-950 shadow">
+          1. Pré-Flop
+        </button>
+        <button data-step="1" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all text-slate-400 hover:text-white">
+          2. Flop (1)
+        </button>
+        <button data-step="2" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all text-slate-400 hover:text-white">
+          3. Flop (2-3)
+        </button>
+        <button data-step="3" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all text-slate-400 hover:text-white">
+          4. Turn
+        </button>
+        <button data-step="4" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all text-slate-400 hover:text-white">
+          5. River
+        </button>
+        <button data-step="5" class="replayer-step-btn flex-1 py-1 rounded-lg text-[9px] sm:text-[10px] font-black transition-all text-slate-400 hover:text-white">
+          6. Vainqueur 🏆
+        </button>
+      </div>
+
+      <!-- Le Mini-Tapis Oval Graphique Interactif -->
+      <div class="relative bg-gradient-to-b from-slate-950 to-slate-900 p-2 sm:p-3 rounded-2xl border border-slate-800 mb-2 flex flex-col items-center overflow-hidden">
+        <!-- Feutre de Poker Replayer -->
+        <div id="replayer-mini-felt" class="w-full max-w-lg h-32 sm:h-36 rounded-full border-4 border-amber-600/70 bg-emerald-900 shadow-inner relative flex flex-col items-center justify-center p-2 transition-colors">
+          <!-- Stitching cuir -->
+          <div class="absolute inset-1 rounded-full border border-dashed border-amber-400/25 pointer-events-none"></div>
+
+          <!-- Badge du Pot à cette étape -->
+          <div class="flex items-center gap-1 bg-black/80 border border-amber-400/50 px-2.5 py-0.5 rounded-full shadow mb-1.5 z-10">
+            <span class="text-amber-400 text-xs">🪙</span>
+            <span id="replayer-pot-text" class="text-xs sm:text-sm font-black text-amber-300">Pot : 0 🪙</span>
+          </div>
+
+          <!-- Board Commun : 5 Cartes interactives carte par carte -->
+          <div id="replayer-board-cards" class="flex items-center justify-center gap-1 sm:gap-2 z-10 min-h-[50px]">
+            <!-- 5 cartes insérées dynamiquement -->
+          </div>
+
+          <!-- Watermark central logo -->
+          <span class="absolute bottom-1.5 text-[8px] font-black text-emerald-400/30 uppercase tracking-widest pointer-events-none select-none">
+            HIKA-POKER REPLAY
+          </span>
         </div>
       </div>
 
-      <!-- Liste des Joueurs et Combinaisons -->
-      <div class="flex-1 overflow-y-auto space-y-2 pr-1 mb-4" id="replayer-players-list">
+      <!-- Bandeau de Commentaires Dynamique Carte par Carte -->
+      <div class="bg-slate-950/90 border border-slate-800 rounded-xl px-3 py-1.5 mb-2 flex items-center gap-2">
+        <span class="text-sm" id="replayer-comment-icon">🃏</span>
+        <p id="replayer-commentary-text" class="text-[11px] sm:text-xs text-slate-200 font-medium truncate flex-1">
+          Pré-flop : Cartes privées distribuées.
+        </p>
+      </div>
+
+      <!-- Liste compacte des Joueurs et Mains -->
+      <div class="flex-1 overflow-y-auto space-y-1.5 pr-1 mb-2.5 max-h-[140px] sm:max-h-[170px]" id="replayer-players-list">
         <!-- Rempli dynamiquement -->
       </div>
 
-      <!-- Bouton Fermer -->
-      <button id="btn-replayer-close-bottom" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer">
-        Fermer la Revue
-      </button>
+      <!-- Barre de Contrôles Multimédia (Play / Pause / Next / Prev) -->
+      <div class="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-800">
+        <div class="flex items-center gap-1">
+          <button id="btn-replayer-first" title="Revenir au début (Pré-flop)" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-transform active:scale-95 cursor-pointer">
+            ⏮
+          </button>
+          <button id="btn-replayer-prev" title="Carte / Étape précédente" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-transform active:scale-95 cursor-pointer flex items-center gap-1">
+            <span>◀</span>
+            <span class="hidden sm:inline text-[10px]">Préc.</span>
+          </button>
+          <button id="btn-replayer-play" title="Lecture / Pause automatique" class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black transition-transform active:scale-95 shadow-lg flex items-center gap-1.5 cursor-pointer">
+            <span id="replayer-play-icon">▶</span>
+            <span id="replayer-play-label" class="text-[11px]">LECTURE</span>
+          </button>
+          <button id="btn-replayer-next" title="Carte / Étape suivante" class="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-transform active:scale-95 cursor-pointer flex items-center gap-1">
+            <span class="hidden sm:inline text-[10px]">Suiv.</span>
+            <span>▶</span>
+          </button>
+          <button id="btn-replayer-last" title="Aller directement au Showdown" class="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-black transition-transform active:scale-95 cursor-pointer">
+            ⏭
+          </button>
+        </div>
+
+        <button id="btn-replayer-close-bottom" class="px-4 py-1.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors cursor-pointer">
+          Fermer
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1124,6 +1325,8 @@
   <script src="js/audio.js"></script>
   <script src="js/storage.js"></script>
   <script src="js/bot-names.js"></script>
+  <script src="js/avatars.js"></script>
+  <script src="js/fireworks.js"></script>
   <script src="js/wheel.js"></script>
   <script src="js/tournament.js"></script>
   <script src="js/ui-table.js"></script>

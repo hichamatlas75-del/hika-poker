@@ -44,6 +44,13 @@ class HikaPokerApp {
     this.selectedTourneySpeed = 'normal';
     this.lastHandSummary = null;
     this.dailyBonusTimerInterval = null;
+
+    // Hand Replayer Interactif Carte par Carte & Galerie Avatars VIP
+    this.replayerCurrentStep = 0;
+    this.replayerAutoPlayTimer = null;
+    this.replayerSpeed = 900;
+    this.currentAvatarTab = 'vip';
+    this.currentGuestAvatarTab = 'vip';
   }
 
   init() {
@@ -316,28 +323,121 @@ class HikaPokerApp {
       });
     }
 
-    // Sélecteur de Thème
+    // Onglets de Navigation dans le Profil / Stats Modal
+    const tabStatsOverview = document.getElementById('tab-stats-overview');
+    if (tabStatsOverview) tabStatsOverview.addEventListener('click', () => this.switchStatsTab('overview'));
+    const tabStatsHands = document.getElementById('tab-stats-hands');
+    if (tabStatsHands) tabStatsHands.addEventListener('click', () => this.switchStatsTab('hands'));
+    const tabStatsLeader = document.getElementById('tab-stats-leaderboard');
+    if (tabStatsLeader) tabStatsLeader.addEventListener('click', () => this.switchStatsTab('leaderboard'));
+    const tabStatsSettings = document.getElementById('tab-stats-settings');
+    if (tabStatsSettings) tabStatsSettings.addEventListener('click', () => this.switchStatsTab('settings'));
+
+    // Sélecteur de Thème du Feutre
     const themeSelect = document.getElementById('table-theme-select');
-    if (themeSelect) {
-      themeSelect.addEventListener('change', (e) => {
-        this.applyTheme(e.target.value);
-        window.storageManager.updateSettings({ theme: e.target.value });
+    const settingsThemeSelect = document.getElementById('settings-theme-select');
+    const applyThemeChange = (val) => {
+      this.applyTheme(val);
+      window.storageManager.updateSettings({ theme: val });
+      if (themeSelect) themeSelect.value = val;
+      if (settingsThemeSelect) settingsThemeSelect.value = val;
+    };
+    if (themeSelect) themeSelect.addEventListener('change', (e) => applyThemeChange(e.target.value));
+    if (settingsThemeSelect) settingsThemeSelect.addEventListener('change', (e) => applyThemeChange(e.target.value));
+
+    // Synchronisation Cartes 4 Couleurs Optionnelles (Table HUD & Modal Paramètres)
+    const toggle4C = document.getElementById('toggle-four-color-deck');
+    const setting4C = document.getElementById('setting-four-color-deck');
+    const current4CSettings = window.storageManager.getSettings();
+    if (toggle4C) toggle4C.checked = !!current4CSettings.fourColorDeck;
+    if (setting4C) setting4C.checked = !!current4CSettings.fourColorDeck;
+
+    const apply4Color = (enabled) => {
+      window.storageManager.updateSettings({ fourColorDeck: enabled });
+      if (toggle4C) toggle4C.checked = enabled;
+      if (setting4C) setting4C.checked = enabled;
+      if (this.engine) {
+        const state = this.engine.getState(this.humanId);
+        window.tableUI.renderSeats(state, this.humanId, this.winningCards || []);
+        window.tableUI.renderBoard(state.board || [], this.winningCards || []);
+      }
+      const replayerModal = document.getElementById('hand-replayer-modal');
+      if (replayerModal && !replayerModal.classList.contains('hidden')) {
+        this.renderHandReplayerStep(this.replayerCurrentStep);
+      }
+      this.showToast(enabled ? "Jeu 4 Couleurs Activé (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)" : "Jeu Standard 2 Couleurs Activé", "🃏");
+    };
+    if (toggle4C) toggle4C.addEventListener('change', (e) => apply4Color(e.target.checked));
+    if (setting4C) setting4C.addEventListener('change', (e) => apply4Color(e.target.checked));
+
+    // Contrôles Audio & Volume dans les Paramètres
+    const settingsSoundToggle = document.getElementById('settings-btn-toggle-sound');
+    if (settingsSoundToggle) {
+      settingsSoundToggle.addEventListener('click', () => {
+        soundToggleHandler();
+        const isMuted = !!(window.soundFX && window.soundFX.muted);
+        settingsSoundToggle.textContent = isMuted ? '🔇 Désactivé' : '🔊 Activé';
+        settingsSoundToggle.classList.toggle('text-rose-400', isMuted);
       });
     }
 
-    // Toggle 4 Couleurs Deck (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)
-    const toggle4C = document.getElementById('toggle-four-color-deck');
-    if (toggle4C) {
-      const currentSettings = window.storageManager.getSettings();
-      toggle4C.checked = !!currentSettings.fourColorDeck;
-      toggle4C.addEventListener('change', (e) => {
-        window.storageManager.updateSettings({ fourColorDeck: e.target.checked });
-        if (this.engine) {
-          const state = this.engine.getState(this.humanId);
-          window.tableUI.renderSeats(state, this.humanId, this.winningCards || []);
-          window.tableUI.renderBoard(state.board || [], this.winningCards || []);
+    const settingsVol = document.getElementById('settings-sound-volume');
+    const settingsVolVal = document.getElementById('settings-sound-volume-val');
+    if (settingsVol) {
+      settingsVol.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10) / 100;
+        if (window.soundFX && typeof window.soundFX.setVolume === 'function') {
+          window.soundFX.setVolume(val);
+        } else if (window.soundFX) {
+          window.soundFX.volume = val;
+          if (window.soundFX.masterGain && window.soundFX.ctx) {
+            window.soundFX.masterGain.gain.setValueAtTime(val, window.soundFX.ctx.currentTime);
+          }
         }
-        this.showToast(e.target.checked ? "Jeu 4 Couleurs Activé (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)" : "Jeu Standard 2 Couleurs Activé", "🃏");
+        if (settingsVolVal) settingsVolVal.textContent = `${e.target.value}%`;
+      });
+    }
+
+    const settingsHaptics = document.getElementById('settings-toggle-haptics');
+    if (settingsHaptics) {
+      settingsHaptics.addEventListener('change', (e) => {
+        if (window.soundFX) window.soundFX.hapticsEnabled = e.target.checked;
+        this.showToast(e.target.checked ? "Vibrations haptiques activées" : "Vibrations désactivées", "📳");
+      });
+    }
+
+    // Sous-onglets de sélection d'Avatar (VIP Zynga vs Émojis)
+    const tabAvVip = document.getElementById('tab-avatar-vip');
+    const tabAvEmoji = document.getElementById('tab-avatar-emoji');
+    if (tabAvVip && tabAvEmoji) {
+      tabAvVip.addEventListener('click', () => {
+        this.currentAvatarTab = 'vip';
+        tabAvVip.className = 'flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all';
+        tabAvEmoji.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white transition-all';
+        this.populateAvatarPickers();
+      });
+      tabAvEmoji.addEventListener('click', () => {
+        this.currentAvatarTab = 'emoji';
+        tabAvEmoji.className = 'flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all';
+        tabAvVip.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white transition-all';
+        this.populateAvatarPickers();
+      });
+    }
+
+    const tabGuestAvVip = document.getElementById('tab-guest-avatar-vip');
+    const tabGuestAvEmoji = document.getElementById('tab-guest-avatar-emoji');
+    if (tabGuestAvVip && tabGuestAvEmoji) {
+      tabGuestAvVip.addEventListener('click', () => {
+        this.currentGuestAvatarTab = 'vip';
+        tabGuestAvVip.className = 'flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all';
+        tabGuestAvEmoji.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white transition-all';
+        this.populateAvatarPickers();
+      });
+      tabGuestAvEmoji.addEventListener('click', () => {
+        this.currentGuestAvatarTab = 'emoji';
+        tabGuestAvEmoji.className = 'flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all';
+        tabGuestAvVip.className = 'flex-1 py-1 rounded text-slate-400 hover:text-white transition-all';
+        this.populateAvatarPickers();
       });
     }
 
@@ -350,7 +450,7 @@ class HikaPokerApp {
       });
     });
 
-    // Bouton et Modal Revoir la dernière main (Hand Replayer)
+    // Bouton et Modal Revoir la dernière main (Hand Replayer Interactif Carte par Carte)
     const btnReplayer = document.getElementById('btn-hand-replayer');
     if (btnReplayer) {
       btnReplayer.addEventListener('click', () => this.openHandReplayerModal());
@@ -363,6 +463,40 @@ class HikaPokerApp {
     if (btnCloseReplayerBottom) {
       btnCloseReplayerBottom.addEventListener('click', () => this.closeHandReplayerModal());
     }
+
+    const btnRepFirst = document.getElementById('btn-replayer-first');
+    if (btnRepFirst) btnRepFirst.addEventListener('click', () => this.setReplayerStep(0));
+
+    const btnRepPrev = document.getElementById('btn-replayer-prev');
+    if (btnRepPrev) btnRepPrev.addEventListener('click', () => this.setReplayerStep(this.replayerCurrentStep - 1));
+
+    const btnRepPlay = document.getElementById('btn-replayer-play');
+    if (btnRepPlay) btnRepPlay.addEventListener('click', () => this.toggleReplayerAutoPlay());
+
+    const btnRepNext = document.getElementById('btn-replayer-next');
+    if (btnRepNext) btnRepNext.addEventListener('click', () => this.setReplayerStep(this.replayerCurrentStep + 1));
+
+    const btnRepLast = document.getElementById('btn-replayer-last');
+    if (btnRepLast) btnRepLast.addEventListener('click', () => this.setReplayerStep(5));
+
+    const repSpeed = document.getElementById('replayer-speed-select');
+    if (repSpeed) {
+      repSpeed.addEventListener('change', (e) => {
+        this.replayerSpeed = parseInt(e.target.value, 10) || 900;
+        if (this.replayerAutoPlayTimer) {
+          this.toggleReplayerAutoPlay();
+          this.toggleReplayerAutoPlay();
+        }
+      });
+    }
+
+    const stepBtns = document.querySelectorAll('.replayer-step-btn');
+    stepBtns.forEach((b) => {
+      b.addEventListener('click', (e) => {
+        const s = parseInt(e.currentTarget.dataset.step, 10);
+        if (!isNaN(s)) this.setReplayerStep(s);
+      });
+    });
 
     // Bouton et Modal Daily Login Bonus 7 Jours
     const btnOpenDaily = document.getElementById('btn-open-daily-bonus');
@@ -539,7 +673,13 @@ class HikaPokerApp {
 
     if (nameEl) nameEl.textContent = prof.name;
     if (chipsEl) chipsEl.textContent = prof.chips.toLocaleString();
-    if (avatarEl) avatarEl.textContent = prof.avatar || '👑';
+    if (avatarEl) {
+      if (window.HikaAvatars && typeof window.HikaAvatars.renderAvatarHTML === 'function') {
+        avatarEl.innerHTML = window.HikaAvatars.renderAvatarHTML(prof.avatar, 'w-full h-full text-sm');
+      } else {
+        avatarEl.textContent = prof.avatar || '👑';
+      }
+    }
     const tableChipsEl = document.getElementById('table-hud-chips-text');
     if (tableChipsEl) tableChipsEl.textContent = prof.chips.toLocaleString();
 
@@ -591,13 +731,15 @@ class HikaPokerApp {
     const tabOverview = document.getElementById('tab-stats-overview');
     const tabHands = document.getElementById('tab-stats-hands');
     const tabLeaderboard = document.getElementById('tab-stats-leaderboard');
+    const tabSettings = document.getElementById('tab-stats-settings');
 
     const panelOverview = document.getElementById('stats-panel-overview');
     const panelHands = document.getElementById('stats-panel-hands');
     const panelLeaderboard = document.getElementById('stats-panel-leaderboard');
+    const panelSettings = document.getElementById('stats-panel-settings');
 
-    const tabs = [tabOverview, tabHands, tabLeaderboard];
-    const panels = [panelOverview, panelHands, panelLeaderboard];
+    const tabs = [tabOverview, tabHands, tabLeaderboard, tabSettings];
+    const panels = [panelOverview, panelHands, panelLeaderboard, panelSettings];
 
     tabs.forEach((t) => {
       if (t) {
@@ -649,6 +791,40 @@ class HikaPokerApp {
       }
       if (panelLeaderboard) panelLeaderboard.classList.remove('hidden');
       this.renderLeaderboard();
+
+    } else if (tabName === 'settings') {
+      if (tabSettings) {
+        tabSettings.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabSettings.classList.remove('text-slate-400');
+      }
+      if (panelSettings) panelSettings.classList.remove('hidden');
+
+      // Synchroniser les contrôles des paramètres
+      const s = window.storageManager.getSettings();
+      const check4C = document.getElementById('setting-four-color-deck');
+      if (check4C) check4C.checked = !!s.fourColorDeck;
+
+      const themeSel = document.getElementById('settings-theme-select');
+      if (themeSel) themeSel.value = s.theme || 'green';
+
+      const volSlider = document.getElementById('settings-sound-volume');
+      const volVal = document.getElementById('settings-sound-volume-val');
+      const currentVol = window.soundFX ? window.soundFX.volume : 0.8;
+      const pct = Math.round(currentVol * 100);
+      if (volSlider) volSlider.value = pct;
+      if (volVal) volVal.textContent = `${pct}%`;
+
+      const soundBtn = document.getElementById('settings-btn-toggle-sound');
+      const isMuted = !!(window.soundFX && window.soundFX.muted);
+      if (soundBtn) {
+        soundBtn.textContent = isMuted ? '🔇 Désactivé' : '🔊 Activé';
+        soundBtn.classList.toggle('text-rose-400', isMuted);
+      }
+
+      const hapticsToggle = document.getElementById('settings-toggle-haptics');
+      if (hapticsToggle && window.soundFX) {
+        hapticsToggle.checked = window.soundFX.hapticsEnabled !== false;
+      }
     }
   }
 
@@ -787,7 +963,13 @@ class HikaPokerApp {
       const wonEl = document.getElementById('auth-user-card-won');
 
       if (nameEl) nameEl.textContent = prof.name;
-      if (avatarEl) avatarEl.textContent = prof.avatar || '👑';
+      if (avatarEl) {
+        if (window.HikaAvatars && typeof window.HikaAvatars.renderAvatarHTML === 'function') {
+          avatarEl.innerHTML = window.HikaAvatars.renderAvatarHTML(prof.avatar, 'w-full h-full text-3xl');
+        } else {
+          avatarEl.textContent = prof.avatar || '👑';
+        }
+      }
       if (chipsEl) chipsEl.textContent = `${prof.chips.toLocaleString()} 🪙`;
       if (wonEl) wonEl.textContent = stats.handsWon.toLocaleString();
 
@@ -819,75 +1001,109 @@ class HikaPokerApp {
   }
 
   populateAvatarPickers() {
-    const avatars = ['👑', '🤠', '🦁', '🦈', '🕶️', '🎩', '💎', '🦊', '🤖', '🧙', '🐺', '🚀', '🔥', '🐯', '⚡', '🐉'];
+    const isVip = this.currentAvatarTab !== 'emoji';
+    const isGuestVip = this.currentGuestAvatarTab !== 'emoji';
     const currentAvatar = window.storageManager.getProfile().avatar || '👑';
 
     // 1. Profil connecté
     const profGrid = document.getElementById('profile-avatar-grid');
     if (profGrid) {
-      profGrid.innerHTML = '';
-      avatars.forEach((emoji) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        const isSel = emoji === currentAvatar;
-        btn.className = `h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${isSel ? 'border-amber-400 bg-amber-500/25 scale-110 shadow-lg' : 'border-slate-800 hover:border-slate-600'} cursor-pointer`;
-        btn.textContent = emoji;
-        btn.addEventListener('click', () => this.selectAvatar(emoji));
-        profGrid.appendChild(btn);
-      });
+      this._renderAvatarGrid(profGrid, isVip, currentAvatar, (avId) => this.selectAvatar(avId));
     }
 
     // 2. Profil invité
     const guestGrid = document.getElementById('guest-avatar-grid');
     if (guestGrid) {
-      guestGrid.innerHTML = '';
-      avatars.forEach((emoji) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        const isSel = emoji === currentAvatar;
-        btn.className = `h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${isSel ? 'border-amber-400 bg-amber-500/25 scale-110 shadow-lg' : 'border-slate-800 hover:border-slate-600'} cursor-pointer`;
-        btn.textContent = emoji;
-        btn.addEventListener('click', () => this.selectAvatar(emoji));
-        guestGrid.appendChild(btn);
-      });
+      this._renderAvatarGrid(guestGrid, isGuestVip, currentAvatar, (avId) => this.selectAvatar(avId));
     }
 
     // 3. Formulaire d'inscription
     const regGrid = document.getElementById('auth-avatar-grid');
-    const hiddenRegInput = document.getElementById('auth-register-avatar');
     if (regGrid && regGrid.children.length === 0) {
-      avatars.forEach((emoji, i) => {
+      const presets = (window.HikaAvatars && window.HikaAvatars.AVATAR_PRESETS) || [];
+      const emojis = (window.HikaAvatars && window.HikaAvatars.CLASSIC_EMOJIS) || ['👑', '🤠', '🦁', '🦈', '🕶️'];
+      const combined = presets.slice(0, 5).concat(emojis.slice(0, 5).map(e => ({ id: e, isEmoji: true })));
+      const hiddenRegInput = document.getElementById('auth-register-avatar');
+
+      combined.forEach((item, i) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${i === 0 ? 'border-amber-400 bg-amber-500/20 scale-105' : 'border-slate-800 hover:border-slate-700'} cursor-pointer`;
-        btn.textContent = emoji;
+        btn.className = `h-10 rounded-xl flex items-center justify-center transition-all bg-slate-900 border ${i === 0 ? 'border-amber-400 bg-amber-500/20 scale-105 shadow' : 'border-slate-800 hover:border-slate-700'} cursor-pointer p-1`;
+        if (item.isEmoji) {
+          btn.innerHTML = `<span class="text-xl">${item.id}</span>`;
+        } else {
+          btn.innerHTML = `<div class="w-8 h-8 rounded-full overflow-hidden">${item.svg}</div>`;
+        }
         btn.addEventListener('click', () => {
           Array.from(regGrid.children).forEach((b) => {
-            b.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer';
+            b.className = 'h-10 rounded-xl flex items-center justify-center transition-all bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer p-1';
           });
-          btn.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-amber-500/20 border-2 border-amber-400 scale-105 cursor-pointer';
-          if (hiddenRegInput) hiddenRegInput.value = emoji;
+          btn.className = 'h-10 rounded-xl flex items-center justify-center transition-all bg-amber-500/25 border-2 border-amber-400 scale-105 shadow cursor-pointer p-1';
+          if (hiddenRegInput) hiddenRegInput.value = item.id;
         });
         regGrid.appendChild(btn);
       });
     }
 
-    const prevSel = document.getElementById('auth-selected-avatar-preview');
-    if (prevSel) prevSel.textContent = `Actuel : ${currentAvatar}`;
-    const guestPrevSel = document.getElementById('guest-selected-avatar-preview');
-    if (guestPrevSel) guestPrevSel.textContent = `Actuel : ${currentAvatar}`;
+    this.updateAvatarPreviewLabels(currentAvatar);
   }
 
-  selectAvatar(emoji) {
-    window.storageManager.setAvatar(emoji);
+  _renderAvatarGrid(container, isVip, currentAvatar, onSelect) {
+    container.innerHTML = '';
+    if (isVip && window.HikaAvatars) {
+      container.className = 'grid grid-cols-2 sm:grid-cols-5 gap-2 max-h-[165px] overflow-y-auto pr-0.5';
+      window.HikaAvatars.AVATAR_PRESETS.forEach((preset) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = preset.id === currentAvatar;
+        btn.className = `vip-avatar-card relative p-2 rounded-xl flex flex-col items-center gap-1 border transition-all ${isSel ? 'avatar-selected border-amber-400 bg-amber-500/25 shadow-lg' : 'border-slate-800 bg-slate-900/80 hover:border-amber-500/50'} cursor-pointer text-left`;
+        btn.innerHTML = `
+          <div class="w-10 h-10 rounded-full overflow-hidden p-0.5 shadow-md flex items-center justify-center bg-slate-950">
+            ${preset.svg}
+          </div>
+          <span class="text-[10px] font-black text-slate-200 truncate max-w-full leading-tight">${preset.name}</span>
+          <span class="text-[8px] font-bold px-1.5 py-0.2 rounded ${preset.badgeColor || 'bg-amber-500 text-slate-950'} uppercase">${preset.tag || 'VIP'}</span>
+          ${isSel ? '<span class="absolute top-1 right-1 text-xs text-amber-400 font-black">✓</span>' : ''}
+        `;
+        btn.addEventListener('click', () => onSelect(preset.id));
+        container.appendChild(btn);
+      });
+    } else {
+      container.className = 'grid grid-cols-8 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5';
+      const emojis = (window.HikaAvatars && window.HikaAvatars.CLASSIC_EMOJIS) || ['👑', '🤠', '🦁', '🦈', '🕶️', '🎩', '💎', '🦊', '🤖', '🧙', '🐺', '🚀', '🔥', '🐯', '⚡', '🐉'];
+      emojis.forEach((emoji) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = emoji === currentAvatar;
+        btn.className = `h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${isSel ? 'border-amber-400 bg-amber-500/25 scale-110 shadow-lg' : 'border-slate-800 hover:border-slate-600'} cursor-pointer`;
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => onSelect(emoji));
+        container.appendChild(btn);
+      });
+    }
+  }
+
+  updateAvatarPreviewLabels(currentAvatar) {
+    const meta = window.HikaAvatars ? window.HikaAvatars.getAvatarMeta(currentAvatar) : null;
+    const displayText = meta ? `${meta.name} (${meta.tag})` : currentAvatar;
+    const prevSel = document.getElementById('auth-selected-avatar-preview');
+    if (prevSel) prevSel.textContent = `Actuel : ${displayText}`;
+    const guestPrevSel = document.getElementById('guest-selected-avatar-preview');
+    if (guestPrevSel) guestPrevSel.textContent = `Actuel : ${displayText}`;
+  }
+
+  selectAvatar(avatarId) {
+    window.storageManager.setAvatar(avatarId);
     this.updateUserHeader();
     if (this.engine) {
       const hp = this.engine.getPlayer(this.humanId);
-      if (hp) hp.avatar = emoji;
+      if (hp) hp.avatar = avatarId;
       window.tableUI.renderSeats(this.engine.getState(this.humanId), this.humanId, this.winningCards || []);
     }
     this.populateAvatarPickers();
-    this.showToast(`Avatar sélectionné : ${emoji}`, emoji);
+    const meta = window.HikaAvatars ? window.HikaAvatars.getAvatarMeta(avatarId) : null;
+    const toastLabel = meta ? meta.name : avatarId;
+    this.showToast(`Avatar sélectionné : ${toastLabel}`, meta ? '👑' : avatarId);
   }
 
   switchAuthTab(tab) {
@@ -1926,6 +2142,12 @@ class HikaPokerApp {
       }
 
       window.tableUI.showWinnerBanner(winnerName, handLabel, totalPot);
+
+      // Particules de feux d'artifice de jetons dorés si gros pot (> 50x Big Blind)
+      const currentBB = (this.engine && this.engine.blinds && this.engine.blinds.bigBlind) || (this.currentTableConfig && this.currentTableConfig.bb) || 50;
+      if (totalPot >= currentBB * 50 && window.HikaFireworks && typeof window.HikaFireworks.launch === 'function') {
+        window.HikaFireworks.launch(totalPot, currentBB);
+      }
     }
 
     // Enregistrement unique de la main pour les statistiques du joueur humain
@@ -2363,19 +2585,38 @@ class HikaPokerApp {
   }
 
   // =========================================================================
-  // REVUE DE LA DERNIÈRE MAIN (HAND REPLAYER)
+  // REVUE INTERACTIVE DE LA DERNIÈRE MAIN (HAND REPLAYER CARTE PAR CARTE)
   // =========================================================================
 
   openHandReplayerModal() {
-    this.renderHandReplayer();
+    this.replayerCurrentStep = 0;
+    if (this.replayerAutoPlayTimer) {
+      clearInterval(this.replayerAutoPlayTimer);
+      this.replayerAutoPlayTimer = null;
+    }
+    const playIcon = document.getElementById('replayer-play-icon');
+    const playLbl = document.getElementById('replayer-play-label');
+    if (playIcon) playIcon.textContent = '▶';
+    if (playLbl) playLbl.textContent = 'LECTURE';
+
     const modal = document.getElementById('hand-replayer-modal');
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
+    this.renderHandReplayerStep(0);
   }
 
   closeHandReplayerModal() {
+    if (this.replayerAutoPlayTimer) {
+      clearInterval(this.replayerAutoPlayTimer);
+      this.replayerAutoPlayTimer = null;
+    }
+    const playIcon = document.getElementById('replayer-play-icon');
+    const playLbl = document.getElementById('replayer-play-label');
+    if (playIcon) playIcon.textContent = '▶';
+    if (playLbl) playLbl.textContent = 'LECTURE';
+
     const modal = document.getElementById('hand-replayer-modal');
     if (modal) {
       modal.classList.add('hidden');
@@ -2383,46 +2624,177 @@ class HikaPokerApp {
     }
   }
 
-  renderHandReplayer() {
+  toggleReplayerAutoPlay() {
+    const playIcon = document.getElementById('replayer-play-icon');
+    const playLbl = document.getElementById('replayer-play-label');
+
+    if (this.replayerAutoPlayTimer) {
+      clearInterval(this.replayerAutoPlayTimer);
+      this.replayerAutoPlayTimer = null;
+      if (playIcon) playIcon.textContent = '▶';
+      if (playLbl) playLbl.textContent = 'LECTURE';
+      return;
+    }
+
+    if (!this.lastHandSummary) {
+      this.showToast('Aucune main enregistrée à rejouer', '👁️');
+      return;
+    }
+
+    // Si on est déjà à l'étape finale, repartir du début
+    if (this.replayerCurrentStep >= 5) {
+      this.setReplayerStep(0);
+    }
+
+    if (playIcon) playIcon.textContent = '⏸';
+    if (playLbl) playLbl.textContent = 'PAUSE';
+
+    this.replayerAutoPlayTimer = setInterval(() => {
+      if (this.replayerCurrentStep < 5) {
+        this.setReplayerStep(this.replayerCurrentStep + 1);
+      } else {
+        clearInterval(this.replayerAutoPlayTimer);
+        this.replayerAutoPlayTimer = null;
+        if (playIcon) playIcon.textContent = '▶';
+        if (playLbl) playLbl.textContent = 'LECTURE';
+      }
+    }, this.replayerSpeed || 900);
+  }
+
+  setReplayerStep(stepIdx) {
+    const summary = this.lastHandSummary;
+    if (!summary) return;
+    const maxStep = (summary.board && summary.board.length > 0) ? 5 : 1;
+    this.replayerCurrentStep = Math.max(0, Math.min(maxStep, stepIdx));
+    this.renderHandReplayerStep(this.replayerCurrentStep);
+  }
+
+  renderHandReplayerStep(step) {
     const summary = this.lastHandSummary;
     const titleEl = document.getElementById('replayer-table-name');
-    const timeEl = document.getElementById('replayer-hand-time');
     const boardEl = document.getElementById('replayer-board-cards');
+    const potTextEl = document.getElementById('replayer-pot-text');
+    const commTextEl = document.getElementById('replayer-commentary-text');
+    const commIconEl = document.getElementById('replayer-comment-icon');
     const playersListEl = document.getElementById('replayer-players-list');
+    const stepBtns = document.querySelectorAll('.replayer-step-btn');
 
     if (!summary) {
       if (titleEl) titleEl.textContent = "Aucune main précédente enregistrée";
-      if (timeEl) timeEl.textContent = "";
-      if (boardEl) boardEl.innerHTML = '<span class="text-xs text-slate-500 italic py-2">Jouez une première main pour afficher sa revue ici !</span>';
-      if (playersListEl) playersListEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">Aucune donnée de main disponible pour le moment.</div>';
+      if (boardEl) boardEl.innerHTML = '<span class="text-xs text-slate-500 italic py-2">Jouez une première main pour la revoir ici !</span>';
+      if (playersListEl) playersListEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">Aucune donnée de coup disponible pour le moment.</div>';
+      if (potTextEl) potTextEl.textContent = 'Pot : 0 🪙';
+      if (commTextEl) commTextEl.textContent = 'En attente d\'une main terminée.';
       return;
     }
 
     if (titleEl) {
-      titleEl.textContent = `${summary.tableName} • Pot Total : ${summary.pot.toLocaleString()} 🪙`;
+      titleEl.textContent = `${summary.tableName} • Pot Total : ${summary.pot.toLocaleString()} 🪙 (${summary.time || ''})`;
     }
-    if (timeEl) {
-      timeEl.textContent = summary.time || "";
+
+    // 1. Mettre à jour les boutons du Stepper
+    stepBtns.forEach((btn) => {
+      const bStep = parseInt(btn.dataset.step, 10);
+      btn.classList.remove('step-active', 'step-completed', 'bg-amber-500', 'text-slate-950', 'shadow');
+      if (bStep === step) {
+        btn.classList.add('step-active', 'bg-amber-500', 'text-slate-950', 'shadow');
+        btn.classList.remove('text-slate-400');
+      } else if (bStep < step) {
+        btn.classList.add('step-completed');
+        btn.classList.remove('text-slate-400');
+      } else {
+        btn.classList.add('text-slate-400');
+      }
+    });
+
+    // 2. Déterminer les cartes du board à afficher selon l'étape
+    // Étape 0 : Pré-flop (0 carte)
+    // Étape 1 : Flop (1 carte)
+    // Étape 2 : Flop complet (3 cartes)
+    // Étape 3 : Turn (4 cartes)
+    // Étape 4 : River (5 cartes)
+    // Étape 5 : Showdown (5 cartes + surbrillance gagnante)
+    const board = summary.board || [];
+    let visibleCount = 0;
+    if (board.length > 0) {
+      if (step === 1) visibleCount = 1;
+      else if (step === 2) visibleCount = Math.min(3, board.length);
+      else if (step === 3) visibleCount = Math.min(4, board.length);
+      else if (step >= 4) visibleCount = board.length;
     }
 
     if (boardEl) {
-      if (summary.board && summary.board.length > 0) {
-        boardEl.innerHTML = summary.board.map((c) => {
-          const isWinning = summary.winningCards && summary.winningCards.includes(c);
-          return window.tableUI.createCardHTML(c, true, isWinning, 'board');
-        }).join('');
-      } else {
-        boardEl.innerHTML = '<span class="text-xs text-slate-500 italic py-2">La main s\'est terminée pré-flop (Adversaires couchés)</span>';
+      boardEl.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        if (i < visibleCount && board[i]) {
+          const cStr = board[i];
+          const isWinning = (step === 5) && summary.winningCards && summary.winningCards.includes(cStr);
+          const cardHtml = window.tableUI.createCardHTML(cStr, true, isWinning, 'board');
+          boardEl.insertAdjacentHTML('beforeend', cardHtml);
+        } else {
+          // Emplacement vide avec contour en pointillés stylisé
+          boardEl.insertAdjacentHTML('beforeend', `
+            <div class="replayer-card-slot rounded-lg border-2 border-dashed border-emerald-500/35 bg-slate-950/40 flex items-center justify-center text-emerald-400/30 text-xs font-bold select-none">
+              🂠
+            </div>
+          `);
+        }
       }
     }
 
+    // 3. Calcul du pot progressif selon l'étape
+    let currentPot = summary.pot;
+    if (step === 0) currentPot = Math.max(10, Math.round(summary.pot * 0.25));
+    else if (step === 1) currentPot = Math.max(20, Math.round(summary.pot * 0.45));
+    else if (step === 2) currentPot = Math.max(30, Math.round(summary.pot * 0.65));
+    else if (step === 3) currentPot = Math.max(40, Math.round(summary.pot * 0.85));
+    if (potTextEl) potTextEl.textContent = `Pot : ${currentPot.toLocaleString()} 🪙`;
+
+    // 4. Commentaire de l'étape & Sons
+    if (commTextEl) {
+      if (step === 0) {
+        if (commIconEl) commIconEl.textContent = '🃏';
+        commTextEl.textContent = 'Pré-flop : Cartes privées distribuées aux joueurs. Blindes et mises engagées.';
+      } else if (step === 1) {
+        if (commIconEl) commIconEl.textContent = '🂡';
+        commTextEl.textContent = `Flop (1ère carte) : ${board[0] || ''} dévoilée sur le feutre vert.`;
+        if (window.soundFX) window.soundFX.playCardFlip();
+      } else if (step === 2) {
+        if (commIconEl) commIconEl.textContent = '🂢';
+        const flopCards = board.slice(0, 3).join(' ');
+        commTextEl.textContent = `Flop complet : ${flopCards} sur le tapis. Tour d'enchères au Flop.`;
+        if (window.soundFX) window.soundFX.playCardFlip();
+      } else if (step === 3) {
+        if (commIconEl) commIconEl.textContent = '🂣';
+        commTextEl.textContent = `Turn (4ème carte) : ${board[3] || ''} apparaît sur la table. Le coup monte en intensité !`;
+        if (window.soundFX) window.soundFX.playCardFlip();
+      } else if (step === 4) {
+        if (commIconEl) commIconEl.textContent = '🂤';
+        commTextEl.textContent = `River (5ème carte) : ${board[4] || ''} distribuée. Fin du tableau communautaire !`;
+        if (window.soundFX) window.soundFX.playCardFlip();
+      } else if (step === 5) {
+        if (commIconEl) commIconEl.textContent = '🏆';
+        const winNames = summary.winners && summary.winners.length > 0 ? summary.winners.map(w => w.name).join(' & ') : 'Vainqueur';
+        const winCombo = summary.winners && summary.winners[0] ? summary.winners[0].handLabel : 'Meilleure main';
+        commTextEl.textContent = `Showdown : ${winNames} remporte le pot final de ${summary.pot.toLocaleString()} 🪙 avec ${winCombo} !`;
+        if (window.soundFX) {
+          window.soundFX.playWin();
+          if (window.soundFX.playApplause) window.soundFX.playApplause();
+        }
+      }
+    }
+
+    // 5. Rendu des Joueurs et Mains
     if (playersListEl) {
       playersListEl.innerHTML = summary.players.map((p) => {
-        const isWinner = p.won > 0;
+        const isWinner = (step === 5) && p.won > 0;
         let cardHTML = '';
-        if (p.showCards && p.hole && p.hole.length === 2) {
-          const c1Win = summary.winningCards && summary.winningCards.includes(p.hole[0]);
-          const c2Win = summary.winningCards && summary.winningCards.includes(p.hole[1]);
+
+        // Révélation des cartes : l'humain voit toujours ses cartes ; les adversaires les voient au Showdown (step 5) s'ils ne se sont pas couchés
+        const shouldShowHole = p.isHuman || (step === 5 && !p.folded && p.hole && p.hole.length === 2);
+        if (shouldShowHole && p.hole && p.hole.length === 2) {
+          const c1Win = (step === 5) && summary.winningCards && summary.winningCards.includes(p.hole[0]);
+          const c2Win = (step === 5) && summary.winningCards && summary.winningCards.includes(p.hole[1]);
           cardHTML = `
             <div class="flex gap-1">
               ${window.tableUI.createCardHTML(p.hole[0], true, c1Win, 'bot')}
@@ -2430,31 +2802,41 @@ class HikaPokerApp {
             </div>
           `;
         } else if (p.folded) {
-          cardHTML = '<span class="text-[10px] text-slate-500 italic">Fold</span>';
+          cardHTML = '<span class="text-[10px] text-slate-500 font-bold px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800">Couché</span>';
         } else {
-          cardHTML = '<span class="text-[10px] text-slate-500 italic">Cartes masquées</span>';
+          // Dos de cartes fermées
+          cardHTML = `
+            <div class="flex -space-x-1.5">
+              <div class="w-5 h-7 rounded bg-gradient-to-br from-blue-900 to-indigo-950 border border-blue-400/40 shadow"></div>
+              <div class="w-5 h-7 rounded bg-gradient-to-br from-blue-900 to-indigo-950 border border-blue-400/40 shadow"></div>
+            </div>
+          `;
         }
 
-        const borderClass = isWinner ? 'border-amber-400/80 bg-amber-950/40 shadow-amber-950/60' : 'border-slate-800 bg-slate-950/70';
+        const borderClass = isWinner ? 'border-amber-400/90 bg-amber-950/40 shadow-amber-950/60 shadow-md' : 'border-slate-800 bg-slate-950/70';
         const gainBadge = isWinner
-          ? `<span class="px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/40 text-emerald-400 font-black text-xs">+${p.won.toLocaleString()} 🪙</span>`
-          : (p.folded ? `<span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-bold">Couché</span>` : '');
+          ? `<span class="px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/50 text-emerald-300 font-black text-xs animate-pulse">+${p.won.toLocaleString()} 🪙</span>`
+          : (p.folded ? `<span class="text-[9px] text-slate-500 italic">Fold</span>` : '');
+
+        const renderedAv = (window.HikaAvatars && typeof window.HikaAvatars.renderAvatarHTML === 'function')
+          ? window.HikaAvatars.renderAvatarHTML(p.avatar, 'w-8 h-8')
+          : `<span class="text-base">${p.avatar || '👤'}</span>`;
 
         return `
-          <div class="flex items-center justify-between p-2.5 rounded-xl border ${borderClass} transition-colors">
-            <div class="flex items-center gap-2.5">
-              <div class="w-9 h-9 rounded-full bg-slate-900 border ${isWinner ? 'border-amber-400' : 'border-slate-700'} flex items-center justify-center text-lg shadow">
-                ${p.avatar || '👤'}
+          <div class="flex items-center justify-between p-2 rounded-xl border ${borderClass} transition-all">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-full bg-slate-900 border ${isWinner ? 'border-amber-400' : 'border-slate-700'} flex items-center justify-center shadow overflow-hidden">
+                ${renderedAv}
               </div>
               <div>
                 <div class="flex items-center gap-1.5">
                   <span class="text-xs font-black ${p.isHuman ? 'text-amber-300' : 'text-white'}">${p.name} ${p.isHuman ? '(Vous)' : ''}</span>
-                  ${isWinner ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black uppercase">Vainqueur</span>' : ''}
+                  ${isWinner ? '<span class="text-[8px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black uppercase">Vainqueur</span>' : ''}
                 </div>
-                <span class="text-[10px] text-slate-400 block">${p.handLabel || (p.folded ? 'Couché' : 'En jeu')}</span>
+                <span class="text-[9px] text-slate-400 block">${(step === 5 && p.handLabel) ? p.handLabel : (p.folded ? 'Couché' : 'En jeu')}</span>
               </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               ${cardHTML}
               ${gainBadge}
             </div>
