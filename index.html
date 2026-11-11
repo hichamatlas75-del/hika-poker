@@ -140,6 +140,35 @@
       </p>
     </div>
 
+    <!-- Bannière Tournoi En Cours (Cross-Device Cloud Sync) -->
+    <div id="active-tournament-banner" class="hidden mb-6 p-4 md:p-5 rounded-2xl bg-gradient-to-r from-amber-950/90 via-red-950/80 to-slate-950 border-2 border-amber-500/80 shadow-2xl shadow-amber-500/20 relative overflow-hidden transition-all duration-300">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3.5 text-center sm:text-left">
+          <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-2xl shadow">
+            🏆
+          </div>
+          <div>
+            <div class="flex items-center gap-2 justify-center sm:justify-start">
+              <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-amber-500 text-slate-950 animate-pulse">
+                TOURNOI EN COURS
+              </span>
+              <span id="active-tourney-sync-time" class="text-[11px] text-amber-300 font-bold"></span>
+            </div>
+            <h3 class="text-base md:text-lg font-black text-white mt-0.5">Sit & Go 6-Max Actif</h3>
+            <p id="active-tourney-desc" class="text-xs text-slate-300">Niveau 1 | Blinds 25/50 | Vos jetons : 5,000 🪙 | 6 joueurs restants</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5 w-full sm:w-auto">
+          <button id="btn-resume-active-tournament" class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-lg shadow-amber-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+            <span>▶ REPRENDRE LE TOURNOI</span>
+          </button>
+          <button id="btn-discard-active-tournament" title="Abandonner ce tournoi" class="px-3.5 py-2.5 rounded-xl text-xs font-bold bg-slate-900/90 border border-slate-700 hover:border-red-500/50 text-slate-400 hover:text-red-400 transition-colors cursor-pointer">
+            ✕ Abandonner
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Grille des Modes de Jeu -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mb-8">
       

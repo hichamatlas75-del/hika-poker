@@ -17,9 +17,16 @@ create table if not exists public.profiles (
   tournaments_won integer default 0,
   total_won bigint default 0,
   wheel_last_spin timestamp with time zone,
+  active_tournament jsonb default null,
   created_at timestamp with time zone default now(),
   updated_at timestamp with time zone default now()
 );
+
+-- Si vous avez déjà créé la table 'profiles' auparavant, exécutez simplement cette ligne :
+alter table public.profiles add column if not exists active_tournament jsonb default null;
+
+-- Activer la réplication Realtime pour la synchronisation instantanée entre appareils :
+alter publication supabase_realtime add table public.profiles;
 
 -- 2. Table de l'Historique des Mains Jouées
 create table if not exists public.hand_history (

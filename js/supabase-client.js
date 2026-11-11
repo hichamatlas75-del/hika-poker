@@ -13,6 +13,7 @@ class HikaSupabaseClient {
     this.currentUser = null;
     this.isConfigured = false;
     this.authListeners = [];
+    this.realtimeChannel = null;
 
     const savedUrl = (typeof localStorage !== 'undefined') ? localStorage.getItem('hika_supabase_url') : null;
     const savedKey = (typeof localStorage !== 'undefined') ? localStorage.getItem('hika_supabase_key') : null;
@@ -71,6 +72,8 @@ class HikaSupabaseClient {
         if (window.storageManager) {
           await window.storageManager.loadFromCloud(session.user);
         }
+        // Souscription Realtime instantanée sur le profil
+        this.setupRealtimeSubscription(session.user.id);
       }
 
       // 2. Écouter les changements d'état d'authentification
@@ -81,8 +84,10 @@ class HikaSupabaseClient {
           if (window.storageManager) {
             await window.storageManager.loadFromCloud(session.user);
           }
+          this.setupRealtimeSubscription(session.user.id);
         } else {
           this.currentUser = null;
+          this.cleanupRealtimeSubscription();
         }
         this.notifyAuthListeners(event, session);
       });
@@ -228,6 +233,7 @@ class HikaSupabaseClient {
 
   // Déconnexion
   async signOut() {
+    this.cleanupRealtimeSubscription();
     if (this.isReady()) {
       try {
         await this.client.auth.signOut();
@@ -238,6 +244,49 @@ class HikaSupabaseClient {
     this.currentUser = null;
     if (window.storageManager) {
       window.storageManager.revertToGuest();
+    }
+  }
+
+  // Souscription Realtime WebSocket pour synchronisation instantanée entre appareils
+  setupRealtimeSubscription(userId) {
+    if (!this.isReady() || !userId) return;
+
+    this.cleanupRealtimeSubscription();
+
+    try {
+      this.realtimeChannel = this.client
+        .channel(`realtime_profiles_${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'profiles',
+            filter: `id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('[Supabase Realtime] Événement profiles reçu en direct:', payload);
+            if (payload && payload.new && window.storageManager) {
+              window.storageManager.handleRemoteProfileUpdate(payload.new);
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('[Supabase Realtime] Statut souscription:', status);
+        });
+    } catch (err) {
+      console.warn('[Supabase Realtime] Erreur initialisation channel:', err);
+    }
+  }
+
+  cleanupRealtimeSubscription() {
+    if (this.realtimeChannel && this.client) {
+      try {
+        this.client.removeChannel(this.realtimeChannel);
+      } catch (e) {
+        console.warn('[Supabase Realtime] Erreur suppression channel:', e);
+      }
+      this.realtimeChannel = null;
     }
   }
 

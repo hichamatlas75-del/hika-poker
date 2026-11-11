@@ -72,6 +72,24 @@ class HikaPokerApp {
     // 5. Exposer les fonctions globales utiles
     window.updatePlayerChipsDisplay = (chips) => this.updateChipsDisplay(chips);
 
+    // 6. Écouter la visibilité d'onglet pour synchronisation instantanée mobile <-> desktop
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && window.storageManager) {
+          console.log('[Hika-Poker] Onglet actif détecté -> rafraîchissement cloud');
+          window.storageManager.refreshFromCloud();
+        }
+      });
+      window.addEventListener('focus', () => {
+        if (window.storageManager) {
+          window.storageManager.refreshFromCloud();
+        }
+      });
+    }
+
+    // 7. Vérifier et afficher si un tournoi est en cours
+    this.checkAndShowActiveTournament();
+
     console.log('[Hika-Poker] Initialisation terminée.');
   }
 
@@ -90,6 +108,21 @@ class HikaPokerApp {
     if (btnTourney) {
       btnTourney.addEventListener('click', () => {
         this.startTournamentGame();
+      });
+    }
+
+    // Boutons de la bannière Tournoi en cours
+    const btnResumeTourney = document.getElementById('btn-resume-active-tournament');
+    if (btnResumeTourney) {
+      btnResumeTourney.addEventListener('click', () => {
+        this.resumeActiveTournament();
+      });
+    }
+
+    const btnDiscardTourney = document.getElementById('btn-discard-active-tournament');
+    if (btnDiscardTourney) {
+      btnDiscardTourney.addEventListener('click', () => {
+        this.discardActiveTournament();
       });
     }
 
@@ -821,6 +854,17 @@ class HikaPokerApp {
   }
 
   startTournamentGame() {
+    // Vérifier si un tournoi est déjà en cours
+    const existing = window.storageManager ? window.storageManager.getActiveTournament() : null;
+    if (existing && existing.active) {
+      if (confirm("Un tournoi Sit & Go est déjà en cours sur votre compte !\n\nCliquez sur [OK] pour le reprendre exactement où vous l'avez laissé.\nCliquez sur [Annuler] pour abandonner l'ancien et en commencer un nouveau.")) {
+        this.resumeTournamentGame(existing);
+        return;
+      } else {
+        if (window.storageManager) window.storageManager.clearActiveTournament();
+      }
+    }
+
     this.gameMode = 'tournament';
     const tourneyCfg = window.TOURNAMENT_CONFIGS;
     const profile = window.storageManager.getProfile();
@@ -874,11 +918,170 @@ class HikaPokerApp {
 
     window.tournamentManager.start({ id: this.humanId, name: profile.name }, bots);
 
+    // Sauvegarder l'état initial du tournoi pour synchronisation cross-device
+    this.saveActiveTournamentState();
+
     this.showTableScreen('Sit & Go Tournoi 6-Max');
 
     setTimeout(() => {
       this.startNextHand();
     }, 800);
+  }
+
+  // Sauvegarde instantanée de l'état du tournoi en local et sur Supabase Cloud
+  saveActiveTournamentState() {
+    if (this.gameMode !== 'tournament' || !this.engine || !window.tournamentManager || !window.tournamentManager.active) {
+      return;
+    }
+
+    const humanPlayer = this.engine.getPlayer(this.humanId);
+    const humanChips = humanPlayer ? humanPlayer.chips : 0;
+    const remainingCount = this.engine.seats.filter((p) => p && !p.busted && p.chips > 0).length;
+
+    const snapshot = {
+      active: true,
+      updatedAt: Date.now(),
+      gameMode: 'tournament',
+      humanId: this.humanId,
+      tableName: 'Sit & Go Tournoi 6-Max',
+      humanChips: humanChips,
+      level: (this.engine.levelIndex || 0) + 1,
+      blinds: Object.assign({}, this.engine.blinds),
+      playersRemaining: remainingCount,
+      tournament: window.tournamentManager.toJSON(),
+      engine: this.engine.toJSON()
+    };
+
+    if (window.storageManager) {
+      window.storageManager.saveActiveTournament(snapshot);
+    }
+  }
+
+  // Vérifie si un tournoi est actif et affiche la bannière de reprise dans le Lobby
+  checkAndShowActiveTournament() {
+    const banner = document.getElementById('active-tournament-banner');
+    if (!banner) return;
+
+    // Ne pas afficher la bannière si l'utilisateur est déjà assis à une table
+    if (this.engine) {
+      banner.classList.add('hidden');
+      return;
+    }
+
+    const snap = window.storageManager ? window.storageManager.getActiveTournament() : null;
+    if (snap && snap.active) {
+      const descEl = document.getElementById('active-tourney-desc');
+      const timeEl = document.getElementById('active-tourney-sync-time');
+
+      const level = snap.level || snap.tournament?.currentLevel || 1;
+      const sb = snap.blinds?.smallBlind || 25;
+      const bb = snap.blinds?.bigBlind || 50;
+      const chips = (snap.humanChips !== undefined ? snap.humanChips : (snap.engine?.seats?.find((p) => p && p.id === this.humanId)?.chips || 5000)).toLocaleString();
+      const remaining = snap.playersRemaining || snap.engine?.seats?.filter((p) => p && !p.busted && p.chips > 0).length || 6;
+
+      if (descEl) {
+        descEl.textContent = `Niveau ${level} | Blinds ${sb}/${bb} | Vos jetons : ${chips} 🪙 | ${remaining} joueurs restants`;
+      }
+      if (timeEl && snap.updatedAt) {
+        try {
+          const d = new Date(snap.updatedAt);
+          timeEl.textContent = `• Sync ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+        } catch (e) {
+          timeEl.textContent = '';
+        }
+      }
+
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+  }
+
+  // Reprendre le tournoi actif depuis la bannière
+  resumeActiveTournament() {
+    const snap = window.storageManager ? window.storageManager.getActiveTournament() : null;
+    if (!snap || !snap.active || !snap.engine) {
+      this.showToast("Aucun tournoi actif trouvé.", "⚠️");
+      return;
+    }
+
+    this.resumeTournamentGame(snap);
+  }
+
+  // Restauration complète du tournoi (moteur PokerEngine + TournamentManager)
+  resumeTournamentGame(snap) {
+    this.gameMode = 'tournament';
+
+    try {
+      // 1. Restaurer le moteur PokerEngine
+      this.engine = window.PokerEngine.fromJSON(snap.engine);
+      this.bindEngineEvents();
+
+      // 2. Restaurer le TournamentManager
+      if (window.tournamentManager && snap.tournament) {
+        window.tournamentManager.fromJSON(snap.tournament);
+      }
+
+      // 3. Masquer le lobby et afficher la table de jeu
+      this.showTableScreen('Sit & Go Tournoi 6-Max');
+      this.checkAndShowActiveTournament(); // Masquer la bannière lobby
+
+      // 4. Rendu immédiat des sièges, du tapis et du pot
+      const state = this.engine.getState(this.humanId);
+      window.tableUI.renderSeats(state, this.humanId);
+      window.tableUI.renderBoard(state.board || [], []);
+      window.tableUI.renderPot(state.pot || 0);
+
+      if (window.tournamentManager) {
+        window.tournamentManager.updateHUD(snap.level || snap.tournament?.currentLevel || 1, snap.blinds);
+      }
+
+      if (window.soundFX) {
+        window.soundFX.playCardDeal();
+      }
+
+      this.showToast("Tournoi repris avec succès !", "🏆");
+
+      // 5. Continuer la partie là où elle s'était arrêtée
+      setTimeout(() => {
+        if (!this.engine) return;
+
+        // Si la main était terminée ou prête pour la suivante
+        if (this.engine.phase === 'handOver' || !this.isHandRunning) {
+          this.isHandRunning = false;
+          if (this.engine.canStartHand()) {
+            this.startNextHand();
+          } else {
+            window.tournamentManager.onTournamentEnd();
+          }
+        } else if (this.engine._bettingOpen && this.engine._bettingOpen()) {
+          // Si une main est en cours, relancer l'action du joueur ou bot actif
+          this.handleTurn({
+            seat: this.engine.currentSeat,
+            playerId: this.engine.seats[this.engine.currentSeat]?.id
+          });
+        } else {
+          if (this.engine.canStartHand()) {
+            this.startNextHand();
+          }
+        }
+      }, 700);
+
+    } catch (err) {
+      console.error('[App] Erreur lors de la restauration du tournoi:', err);
+      this.showToast("Erreur lors de la reprise du tournoi.", "❌");
+    }
+  }
+
+  // Abandonner le tournoi en cours
+  discardActiveTournament() {
+    if (confirm("Voulez-vous vraiment abandonner ce tournoi ? Votre inscription et vos jetons de tournoi seront perdus.")) {
+      if (window.storageManager) {
+        window.storageManager.clearActiveTournament();
+      }
+      this.checkAndShowActiveTournament();
+      this.showToast("Tournoi abandonné.", "ℹ️");
+    }
   }
 
   showTableScreen(tableName) {
@@ -900,6 +1103,11 @@ class HikaPokerApp {
     this.nextHandRemaining = 0;
     this.updatePauseUI(false);
 
+    // Si tournoi en cours, sauvegarder son état pour reprise ultérieure (sur mobile ou PC)
+    if (this.gameMode === 'tournament' && window.tournamentManager && window.tournamentManager.active) {
+      this.saveActiveTournamentState();
+    }
+
     // Si partie de cash game, recréditer les jetons restants du joueur sur son compte principal
     if (this.gameMode === 'cash' && this.engine) {
       const p = this.engine.getPlayer(this.humanId);
@@ -917,6 +1125,7 @@ class HikaPokerApp {
     document.getElementById('table-view').classList.add('hidden');
     document.getElementById('lobby-view').classList.remove('hidden');
     this.updateUserHeader();
+    this.checkAndShowActiveTournament();
   }
 
   togglePause() {
@@ -1247,6 +1456,7 @@ class HikaPokerApp {
       const p = this.engine.getPlayer(e.playerId);
       if (this.gameMode === 'tournament') {
         window.tournamentManager.onPlayerBust(e.playerId, p ? p.name : 'Bot');
+        this.saveActiveTournamentState();
       } else if (e.playerId === this.humanId) {
         setTimeout(() => this.promptRebuy(), 1200);
       }
@@ -1256,6 +1466,7 @@ class HikaPokerApp {
     this.engine.on('levelUp', (e) => {
       if (this.gameMode === 'tournament') {
         window.tournamentManager.updateHUD(e.level, e.blinds);
+        this.saveActiveTournamentState();
       }
     });
 
@@ -1448,6 +1659,10 @@ class HikaPokerApp {
           handLabel: null
         });
       }
+    }
+
+    if (this.gameMode === 'tournament') {
+      this.saveActiveTournamentState();
     }
   }
 

@@ -47,6 +47,8 @@ class TournamentManager {
     // Si le joueur humain est éliminé
     if (playerId === 'player_user') {
       this.onHumanEliminated(remaining);
+    } else if (window.app && typeof window.app.saveActiveTournamentState === 'function') {
+      window.app.saveActiveTournamentState();
     }
 
     // S'il ne reste plus qu'un seul joueur : c'est le vainqueur !
@@ -59,6 +61,7 @@ class TournamentManager {
     const prize = rank === 2 ? Math.round(this.prizePool * TOURNAMENT_CONFIGS.payouts[1]) : 0;
     if (window.storageManager) {
       window.storageManager.recordTournament({ won: false, rank, prize });
+      window.storageManager.clearActiveTournament();
     }
 
     const modal = document.getElementById('tournament-result-modal');
@@ -69,6 +72,7 @@ class TournamentManager {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
+    this.active = false;
   }
 
   onTournamentEnd() {
@@ -80,6 +84,7 @@ class TournamentManager {
 
       if (window.storageManager) {
         window.storageManager.recordTournament({ won: isWinner, rank, prize });
+        window.storageManager.clearActiveTournament();
       }
 
       document.getElementById('tournament-result-title').textContent = isWinner ? '🏆 CHAMPION DU TOURNOI ! 🏆' : 'TOURNOI TERMINÉ';
@@ -96,7 +101,28 @@ class TournamentManager {
     this.active = false;
   }
 
+  toJSON() {
+    return {
+      active: this.active,
+      eliminated: this.eliminated.slice(),
+      totalPlayers: this.totalPlayers,
+      prizePool: this.prizePool,
+      currentLevel: this.currentLevel || 1
+    };
+  }
+
+  fromJSON(d) {
+    if (!d) return;
+    this.active = !!d.active;
+    this.eliminated = Array.isArray(d.eliminated) ? d.eliminated.slice() : [];
+    this.totalPlayers = d.totalPlayers || 6;
+    this.prizePool = d.prizePool || (TOURNAMENT_CONFIGS.buyIn * this.totalPlayers);
+    this.currentLevel = d.currentLevel || 1;
+    this.updateHUD(this.currentLevel);
+  }
+
   updateHUD(level = 1, blinds = null) {
+    this.currentLevel = level;
     const hud = document.getElementById('tournament-hud');
     if (!hud) return;
 
