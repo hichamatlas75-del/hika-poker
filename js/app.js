@@ -99,7 +99,10 @@ class HikaPokerApp {
     this.updateDailyBonusNotificationBadge();
     this.setTournamentSpeed('normal');
 
-    // 9. Vérifier automatiquement l'éligibilité au Bonus Quotidien au lancement
+    // 9. Initialiser l'état visuel du bouton son
+    this.updateSoundButtonUI();
+
+    // 10. Vérifier automatiquement l'éligibilité au Bonus Quotidien au lancement
     setTimeout(() => {
       const dailyStatus = window.storageManager.getDailyBonusStatus();
       if (dailyStatus.canClaim) {
@@ -115,6 +118,7 @@ class HikaPokerApp {
     const cashTables = document.querySelectorAll('.btn-select-cash-table');
     cashTables.forEach((btn) => {
       btn.addEventListener('click', (e) => {
+        if (window.soundFX) window.soundFX.playBtnClick();
         const stakes = e.currentTarget.dataset.stakes; // 'micro', 'low', 'high'
         this.startCashGame(stakes);
       });
@@ -124,6 +128,7 @@ class HikaPokerApp {
     const btnTourney = document.getElementById('btn-start-tournament');
     if (btnTourney) {
       btnTourney.addEventListener('click', () => {
+        if (window.soundFX) window.soundFX.playBtnClick();
         this.startTournamentGame();
       });
     }
@@ -132,6 +137,7 @@ class HikaPokerApp {
     const btnResumeTourney = document.getElementById('btn-resume-active-tournament');
     if (btnResumeTourney) {
       btnResumeTourney.addEventListener('click', () => {
+        if (window.soundFX) window.soundFX.playBtnClick();
         this.resumeActiveTournament();
       });
     }
@@ -261,6 +267,14 @@ class HikaPokerApp {
           if (window.soundFX) window.soundFX.playAllIn();
           this.handlePlayerAction({ type: 'allin' });
         }
+      } else if (key === 'm' && !['input', 'textarea'].includes(e.target?.tagName?.toLowerCase())) {
+        // Raccourci Mute / Unmute
+        e.preventDefault();
+        if (window.soundFX) {
+          const isMuted = window.soundFX.toggleMute();
+          this.updateSoundButtonUI();
+          this.showToast(isMuted ? 'Son désactivé' : 'Son activé', isMuted ? '🔇' : '🔊');
+        }
       }
     });
 
@@ -277,9 +291,11 @@ class HikaPokerApp {
     const btnToggleSound = document.getElementById('btn-toggle-sound');
     if (btnToggleSound) {
       btnToggleSound.addEventListener('click', () => {
-        const isMuted = window.soundFX.toggleMute();
-        btnToggleSound.innerHTML = isMuted ? '🔇' : '🔊';
-        btnToggleSound.title = isMuted ? 'Activer le son' : 'Couper le son';
+        if (window.soundFX) {
+          const isMuted = window.soundFX.toggleMute();
+          this.updateSoundButtonUI();
+          this.showToast(isMuted ? 'Son désactivé' : 'Son activé', isMuted ? '🔇' : '🔊');
+        }
       });
     }
 
@@ -533,6 +549,18 @@ class HikaPokerApp {
   updateChipsDisplay(newChips) {
     const chipsEl = document.getElementById('user-header-chips');
     if (chipsEl) chipsEl.textContent = newChips.toLocaleString();
+  }
+
+  updateSoundButtonUI() {
+    const btn = document.getElementById('btn-toggle-sound');
+    if (!btn || !window.soundFX) return;
+    const isMuted = !!window.soundFX.muted;
+    btn.innerHTML = isMuted ? '🔇' : '🔊';
+    btn.title = isMuted ? 'Activer le son (Raccourci M)' : 'Couper le son (Raccourci M)';
+    btn.setAttribute('aria-label', isMuted ? 'Activer le son' : 'Couper le son');
+    btn.classList.toggle('text-rose-400', isMuted);
+    btn.classList.toggle('border-rose-500/50', isMuted);
+    btn.classList.toggle('bg-rose-950/40', isMuted);
   }
 
   // =========================================================================

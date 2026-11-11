@@ -34,7 +34,7 @@ class SoundFX {
     this.whiteNoiseBuffer = null;
     this.applauseBuffer = null;
     this.muted = false;
-    this.volume = 0.75;
+    this.volume = 0.80;
     this.hapticsEnabled = true;
 
     this.audioBuffers = {};
@@ -42,17 +42,26 @@ class SoundFX {
 
     this.initFromStorage();
     this._setupAutoUnlock();
-
-    // Démarrer le préchargement dès que possible
-    if (typeof window !== 'undefined') {
-      window.addEventListener('DOMContentLoaded', () => this.preloadAssets());
-    }
   }
 
   initFromStorage() {
     try {
+      // 1. Lire les réglages Hika-Poker s'ils existent
+      const settingsStr = localStorage.getItem('hika_poker_settings');
+      if (settingsStr) {
+        try {
+          const s = JSON.parse(settingsStr);
+          if (typeof s.soundEnabled === 'boolean') {
+            this.muted = !s.soundEnabled;
+          }
+        } catch (_) {}
+      }
+
+      // 2. Vérifier la clé dédiée hika_sound_muted
       const savedMuted = localStorage.getItem('hika_sound_muted');
-      if (savedMuted !== null) this.muted = savedMuted === 'true';
+      if (savedMuted !== null) {
+        this.muted = savedMuted === 'true';
+      }
 
       const savedVol = localStorage.getItem('hika_sound_volume');
       if (savedVol !== null) {
@@ -60,25 +69,38 @@ class SoundFX {
         if (!Number.isNaN(parsed)) this.volume = Math.max(0, Math.min(1, parsed));
       }
     } catch (e) {
-      /* ignore localStorage sandbox restrictions */
+      /* ignore sandbox restrictions */
     }
   }
 
-  // Déverrouillage automatique de l'AudioContext au premier clic ou toucher (obligatoire sur mobile/iOS)
+  // Déverrouillage automatique et résilient de l'AudioContext sur toute interaction utilisateur
   _setupAutoUnlock() {
-    const unlock = () => {
-      const ctx = this._getCtx();
-      if (ctx && ctx.state === 'suspended') {
-        ctx.resume();
-      }
+    const handleGesture = () => {
+      this.ensureContextRunning();
       this.preloadAssets();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('touchstart', unlock);
-      window.removeEventListener('keydown', unlock);
     };
-    window.addEventListener('pointerdown', unlock, { passive: true });
-    window.addEventListener('touchstart', unlock, { passive: true });
-    window.addEventListener('keydown', unlock, { passive: true });
+
+    const events = ['pointerdown', 'touchstart', 'click', 'keydown', 'touchend'];
+    events.forEach((evt) => {
+      window.addEventListener(evt, handleGesture, { passive: true });
+    });
+
+    // Déclencher le préchargement immédiatement si le document est déjà prêt
+    if (typeof document !== 'undefined') {
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(() => this.preloadAssets(), 40);
+      } else {
+        window.addEventListener('DOMContentLoaded', () => this.preloadAssets(), { once: true });
+      }
+    }
+  }
+
+  ensureContextRunning() {
+    const ctx = this._getCtx();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    return ctx;
   }
 
   _getCtx() {
@@ -86,38 +108,43 @@ class SoundFX {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx) return null;
 
-      this.ctx = new AudioCtx();
+      try {
+        this.ctx = new AudioCtx();
+      } catch (e) {
+        console.warn('[SoundFX] AudioContext non supporté:', e);
+        return null;
+      }
 
-      // 1. Compresseur Dynamique Master (Mastering type Studio, zéro distorsion à haut volume)
+      // 1. Volume global Master instancié EN PREMIER pour que tous les bus puissent s'y connecter
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime);
+
+      // 2. Compresseur Dynamique Master (Mastering type Studio Casino, zéro distorsion à haut volume)
       this.compressor = this.ctx.createDynamicsCompressor();
-      this.compressor.threshold.setValueAtTime(-14, this.ctx.currentTime);
+      this.compressor.threshold.setValueAtTime(-12, this.ctx.currentTime);
       this.compressor.knee.setValueAtTime(10, this.ctx.currentTime);
-      this.compressor.ratio.setValueAtTime(4.5, this.ctx.currentTime);
-      this.compressor.attack.setValueAtTime(0.002, this.ctx.currentTime);
-      this.compressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+      this.compressor.ratio.setValueAtTime(3.8, this.ctx.currentTime);
+      this.compressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.compressor.release.setValueAtTime(0.14, this.ctx.currentTime);
 
-      // 2. Égaliseur Master (Low shelf propre sous 50Hz)
+      // 3. Égaliseur Master (Highpass 35Hz anti-ronflement)
       const lowFilter = this.ctx.createBiquadFilter();
       lowFilter.type = 'highpass';
       lowFilter.frequency.setValueAtTime(35, this.ctx.currentTime);
-
-      // 3. Réverbération acoustique VIP Lounge
-      this._buildReverbBus();
-
-      // 4. Volume global Master
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime);
 
       // Chaînage Master : MasterGain -> LowFilter -> Compressor -> Destination
       this.masterGain.connect(lowFilter);
       lowFilter.connect(this.compressor);
       this.compressor.connect(this.ctx.destination);
 
-      // Pré-génération des buffers de bruit HD pour le fallback
+      // 4. Réverbération acoustique VIP Lounge (connectée proprement à masterGain)
+      this._buildReverbBus();
+
+      // 5. Pré-génération des buffers de bruit HD pour le fallback
       this._buildNoiseBuffers();
     }
 
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
     }
     return this.ctx;
@@ -137,10 +164,13 @@ class SoundFX {
           const resp = await fetch(path);
           if (!resp.ok) return;
           const arrayBuf = await resp.arrayBuffer();
-          const audioBuf = await ctx.decodeAudioData(arrayBuf);
+          // Décodage compatible Safari, Chrome, Firefox et WebKit mobile
+          const audioBuf = await new Promise((resolve, reject) => {
+            ctx.decodeAudioData(arrayBuf.slice(0), resolve, reject);
+          });
           this.audioBuffers[key] = audioBuf;
         } catch (e) {
-          // Fallback silencieux vers la synthèse si le fetch échoue (ex: protocole file:// ou hors-ligne)
+          // Fallback automatique vers la synthèse si le fetch échoue (ex: offline ou protocole file://)
         }
       })();
     }
@@ -150,9 +180,9 @@ class SoundFX {
    * Joue un fichier audio réel ou bascule sur la synthèse si non chargé
    */
   playAsset(key, options = {}) {
-    if (this.muted) return;
-    const ctx = this._getCtx();
-    if (!ctx) return;
+    if (this.muted) return false;
+    const ctx = this.ensureContextRunning();
+    if (!ctx) return false;
 
     const volume = options.volume !== undefined ? options.volume : 1.0;
     const pan = options.pan || 0;
@@ -190,24 +220,28 @@ class SoundFX {
       }
     }
 
-    // Si le buffer n'est pas prêt, exécuter la fonction de secours
+    // Si le buffer n'est pas prêt, exécuter la fonction de secours de synthèse
     if (typeof options.fallbackFn === 'function') {
-      options.fallbackFn();
+      try {
+        options.fallbackFn();
+      } catch (err) {
+        console.warn(`[SoundFX] Erreur fallback ${key}:`, err);
+      }
     }
     return false;
   }
 
   _buildReverbBus() {
-    if (!this.ctx) return;
+    if (!this.ctx || !this.masterGain) return;
     try {
       const rate = this.ctx.sampleRate;
-      const length = Math.floor(rate * 0.75);
+      const length = Math.floor(rate * 0.85); // 850ms de decay naturel VIP Lounge
       const impulse = this.ctx.createBuffer(2, length, rate);
       const left = impulse.getChannelData(0);
       const right = impulse.getChannelData(1);
 
       for (let i = 0; i < length; i++) {
-        const decay = Math.exp(-i / (rate * 0.18));
+        const decay = Math.exp(-i / (rate * 0.20));
         left[i] = (Math.random() * 2 - 1) * decay * 0.45;
         right[i] = (Math.random() * 2 - 1) * decay * 0.45;
       }
@@ -216,7 +250,7 @@ class SoundFX {
       this.reverbNode.buffer = impulse;
 
       this.reverbGain = this.ctx.createGain();
-      this.reverbGain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+      this.reverbGain.gain.setValueAtTime(0.22, this.ctx.currentTime);
 
       this.reverbNode.connect(this.reverbGain);
       this.reverbGain.connect(this.masterGain);
@@ -257,38 +291,87 @@ class SoundFX {
     if (!this.ctx) return;
     try {
       const rate = this.ctx.sampleRate;
-      const dur = 3.2;
+      const dur = 3.8;
       const len = Math.floor(rate * dur);
       this.applauseBuffer = this.ctx.createBuffer(2, len, rate);
       const left = this.applauseBuffer.getChannelData(0);
       const right = this.applauseBuffer.getChannelData(1);
 
-      const numClaps = 140;
+      // 1. Simulation d'une foule dense de casino (1 600 battements de mains distincts)
+      const numClaps = 1600;
       for (let c = 0; c < numClaps; c++) {
         const r = Math.random();
-        const tFrac = r < 0.25 ? (r / 0.25) * 0.25 : 0.25 + ((r - 0.25) / 0.75) * 0.75;
-        const startSample = Math.floor(tFrac * (len - rate * 0.18));
+        let tFrac;
+        if (r < 0.14) {
+          tFrac = Math.random() * 0.14; // Montée en ferveur (crescendo)
+        } else if (r < 0.82) {
+          tFrac = 0.14 + Math.random() * 0.62; // Apogée de l'ovation
+        } else {
+          tFrac = 0.76 + Math.random() * 0.22; // Retombée progressive
+        }
 
-        const pan = Math.random() * 2 - 1;
+        const startSample = Math.floor(tFrac * (len - rate * 0.16));
+        const pan = Math.random() * 1.8 - 0.9;
         const lGain = Math.cos((pan + 1) * Math.PI / 4);
         const rGain = Math.sin((pan + 1) * Math.PI / 4);
 
         const normT = startSample / len;
-        const env = Math.sin(normT * Math.PI) * (0.65 + Math.random() * 0.35);
+        let env;
+        if (normT < 0.12) {
+          env = Math.sin((normT / 0.12) * Math.PI / 2);
+        } else if (normT < 0.75) {
+          env = 1.0;
+        } else {
+          env = Math.cos(((normT - 0.75) / 0.25) * Math.PI / 2);
+        }
+        env *= (0.40 + Math.random() * 0.60);
 
-        const clapLen = Math.floor((0.016 + Math.random() * 0.016) * rate);
-        const freq = 750 + Math.random() * 1100;
-        const decayConst = 0.005 + Math.random() * 0.005;
+        // Durée du claquement (12ms à 28ms)
+        const clapLen = Math.floor((0.012 + Math.random() * 0.016) * rate);
+        // Fréquence de résonance de la paume (cupping: 700Hz à 1450Hz)
+        const fBody = 720 + Math.random() * 700;
+        const decayBody = 0.004 + Math.random() * 0.005;
+        // Impact transitoire sec peau contre peau
+        const decaySlap = 0.002 + Math.random() * 0.003;
+        // Pression basse acoustique (thud)
+        const fThud = 200 + Math.random() * 120;
+        const decayThud = 0.008 + Math.random() * 0.008;
 
         for (let i = 0; i < clapLen && (startSample + i) < len; i++) {
           const t = i / rate;
-          const decay = Math.exp(-t / decayConst);
-          const noise = (Math.random() * 2 - 1) * 0.65;
-          const body = Math.sin(2 * Math.PI * freq * t) * 0.35;
-          const sample = (noise + body) * decay * env * 0.28;
+          const body = Math.sin(2 * Math.PI * fBody * t) * Math.exp(-t / decayBody);
+          const slap = (Math.random() * 2 - 1) * Math.exp(-t / decaySlap);
+          const thud = Math.sin(2 * Math.PI * fThud * t) * Math.exp(-t / decayThud) * 0.35;
+          const sample = (body * 0.40 + slap * 0.65 + thud * 0.25) * env * 0.32;
 
           left[startSample + i] += sample * lGain;
           right[startSample + i] += sample * rGain;
+        }
+      }
+
+      // 2. Réflexions précoces stéréo pour une spatialisation immersive dans la salle de poker
+      const delays = [Math.floor(rate * 0.021), Math.floor(rate * 0.038), Math.floor(rate * 0.065)];
+      const gains = [0.20, 0.14, 0.09];
+      for (let d = 0; d < delays.length; d++) {
+        const del = delays[d];
+        const g = gains[d];
+        for (let i = del; i < len; i++) {
+          left[i] += right[i - del] * g * 0.35;
+          right[i] += left[i - del] * g * 0.35;
+        }
+      }
+
+      // 3. Normalisation studio (crête propre à 0.88 sans distorsion)
+      let maxPeak = 0;
+      for (let i = 0; i < len; i++) {
+        if (Math.abs(left[i]) > maxPeak) maxPeak = Math.abs(left[i]);
+        if (Math.abs(right[i]) > maxPeak) maxPeak = Math.abs(right[i]);
+      }
+      if (maxPeak > 0) {
+        const normFactor = 0.88 / maxPeak;
+        for (let i = 0; i < len; i++) {
+          left[i] *= normFactor;
+          right[i] *= normFactor;
         }
       }
     } catch (e) {
@@ -321,20 +404,34 @@ class SoundFX {
     }
   }
 
-  toggleMute() {
-    this.muted = !this.muted;
-    try { localStorage.setItem('hika_sound_muted', this.muted); } catch (e) {}
+  setMuted(isMuted) {
+    this.muted = !!isMuted;
+    try {
+      localStorage.setItem('hika_sound_muted', String(this.muted));
+      if (window.storageManager && typeof window.storageManager.updateSettings === 'function') {
+        window.storageManager.updateSettings({ soundEnabled: !this.muted });
+      }
+    } catch (e) {}
+
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(this.muted ? 0 : this.volume, this.ctx.currentTime, 0.02);
+      const now = this.ctx.currentTime;
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setTargetAtTime(this.muted ? 0 : this.volume, now, 0.02);
     }
     return this.muted;
+  }
+
+  toggleMute() {
+    return this.setMuted(!this.muted);
   }
 
   setVolume(vol) {
     this.volume = Math.max(0, Math.min(1, vol));
     try { localStorage.setItem('hika_sound_volume', this.volume); } catch (e) {}
     if (this.masterGain && this.ctx && !this.muted) {
-      this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.02);
+      const now = this.ctx.currentTime;
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setTargetAtTime(this.volume, now, 0.02);
     }
   }
 
@@ -455,9 +552,10 @@ class SoundFX {
     });
   }
 
-  playApplause(duration = 3.2) {
+  playApplause(duration = 3.8) {
+    this._vibrate([30, 40, 25, 45, 60]);
     this.playAsset('applause', {
-      volume: 0.90,
+      volume: 1.05,
       fallbackFn: () => this._synthApplause(duration)
     });
   }
@@ -568,12 +666,12 @@ class SoundFX {
     filter.frequency.exponentialRampToValueAtTime(220, now + 0.16);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.02, now);
-    gain.gain.linearRampToValueAtTime(0.34, now + 0.025);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.17);
+    gain.gain.linearRampToValueAtTime(0.52, now + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(main);
-    noise.start(now, 0.25, 0.18);
+    noise.start(now, 0.25, 0.19);
   }
 
   _synthChip(pan = 0, pitchShift = 1) {
@@ -832,27 +930,36 @@ class SoundFX {
     });
   }
 
-  _synthApplause(duration = 3.2) {
+  _synthApplause(duration = 3.8) {
     const ctx = this._getCtx();
-    if (!ctx || !this.applauseBuffer) return;
+    if (!ctx) return;
+    if (!this.applauseBuffer) {
+      this._buildApplauseBuffer();
+    }
+    if (!this.applauseBuffer) return;
+
     const now = ctx.currentTime;
     const source = ctx.createBufferSource();
     source.buffer = this.applauseBuffer;
+
+    // Filtre passe-bas doux pour préserver les basses chaudes et le claquement brillant de la foule
     const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1400, now);
-    filter.Q.setValueAtTime(0.85, now);
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(4800, now);
+
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.01, now);
-    gain.gain.linearRampToValueAtTime(0.72, now + 0.20);
-    gain.gain.setValueAtTime(0.68, now + duration - 0.8);
+    gain.gain.linearRampToValueAtTime(0.95, now + 0.28);
+    gain.gain.setValueAtTime(0.90, now + Math.max(0.6, duration - 1.0));
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
     source.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
+
     if (this.reverbNode) {
       const revSend = ctx.createGain();
-      revSend.gain.setValueAtTime(0.35, now);
+      revSend.gain.setValueAtTime(0.38, now);
       gain.connect(revSend);
       revSend.connect(this.reverbNode);
     }
