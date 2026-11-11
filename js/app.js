@@ -315,6 +315,20 @@ class HikaPokerApp {
       });
     }
 
+    // Bouton Direct Options / Paramètres (Header Lobby & HUD Table)
+    const btnOpenSettings = document.getElementById('btn-open-settings');
+    if (btnOpenSettings) {
+      btnOpenSettings.addEventListener('click', () => {
+        this.openAuthModal('settings');
+      });
+    }
+    const btnTableOpenSettings = document.getElementById('btn-table-open-settings');
+    if (btnTableOpenSettings) {
+      btnTableOpenSettings.addEventListener('click', () => {
+        this.openAuthModal('settings');
+      });
+    }
+
     const btnCloseStats = document.getElementById('btn-close-stats');
     if (btnCloseStats) {
       btnCloseStats.addEventListener('click', () => {
@@ -336,26 +350,32 @@ class HikaPokerApp {
     // Sélecteur de Thème du Feutre
     const themeSelect = document.getElementById('table-theme-select');
     const settingsThemeSelect = document.getElementById('settings-theme-select');
+    const authSettingsThemeSelect = document.getElementById('auth-settings-theme-select');
     const applyThemeChange = (val) => {
       this.applyTheme(val);
       window.storageManager.updateSettings({ theme: val });
       if (themeSelect) themeSelect.value = val;
       if (settingsThemeSelect) settingsThemeSelect.value = val;
+      if (authSettingsThemeSelect) authSettingsThemeSelect.value = val;
     };
     if (themeSelect) themeSelect.addEventListener('change', (e) => applyThemeChange(e.target.value));
     if (settingsThemeSelect) settingsThemeSelect.addEventListener('change', (e) => applyThemeChange(e.target.value));
+    if (authSettingsThemeSelect) authSettingsThemeSelect.addEventListener('change', (e) => applyThemeChange(e.target.value));
 
-    // Synchronisation Cartes 4 Couleurs Optionnelles (Table HUD & Modal Paramètres)
+    // Synchronisation Cartes 4 Couleurs Optionnelles (Table HUD, Modal Stats & Modal Compte)
     const toggle4C = document.getElementById('toggle-four-color-deck');
     const setting4C = document.getElementById('setting-four-color-deck');
+    const authSetting4C = document.getElementById('auth-setting-four-color-deck');
     const current4CSettings = window.storageManager.getSettings();
     if (toggle4C) toggle4C.checked = !!current4CSettings.fourColorDeck;
     if (setting4C) setting4C.checked = !!current4CSettings.fourColorDeck;
+    if (authSetting4C) authSetting4C.checked = !!current4CSettings.fourColorDeck;
 
     const apply4Color = (enabled) => {
       window.storageManager.updateSettings({ fourColorDeck: enabled });
       if (toggle4C) toggle4C.checked = enabled;
       if (setting4C) setting4C.checked = enabled;
+      if (authSetting4C) authSetting4C.checked = enabled;
       if (this.engine) {
         const state = this.engine.getState(this.humanId);
         window.tableUI.renderSeats(state, this.humanId, this.winningCards || []);
@@ -369,42 +389,50 @@ class HikaPokerApp {
     };
     if (toggle4C) toggle4C.addEventListener('change', (e) => apply4Color(e.target.checked));
     if (setting4C) setting4C.addEventListener('change', (e) => apply4Color(e.target.checked));
+    if (authSetting4C) authSetting4C.addEventListener('change', (e) => apply4Color(e.target.checked));
 
     // Contrôles Audio & Volume dans les Paramètres
     const settingsSoundToggle = document.getElementById('settings-btn-toggle-sound');
     if (settingsSoundToggle) {
       settingsSoundToggle.addEventListener('click', () => {
         soundToggleHandler();
-        const isMuted = !!(window.soundFX && window.soundFX.muted);
-        settingsSoundToggle.textContent = isMuted ? '🔇 Désactivé' : '🔊 Activé';
-        settingsSoundToggle.classList.toggle('text-rose-400', isMuted);
       });
     }
+    const authSettingsSoundToggle = document.getElementById('auth-settings-btn-toggle-sound');
+    if (authSettingsSoundToggle) {
+      authSettingsSoundToggle.addEventListener('click', () => {
+        soundToggleHandler();
+      });
+    }
+
+    const handleVolumeChange = (valStr) => {
+      const val = parseInt(valStr, 10) / 100;
+      if (window.soundFX && typeof window.soundFX.setVolume === 'function') {
+        window.soundFX.setVolume(val);
+      } else if (window.soundFX) {
+        window.soundFX.volume = val;
+        if (window.soundFX.masterGain && window.soundFX.ctx) {
+          window.soundFX.masterGain.gain.setValueAtTime(val, window.soundFX.ctx.currentTime);
+        }
+      }
+      this.syncSettingsUI();
+    };
 
     const settingsVol = document.getElementById('settings-sound-volume');
-    const settingsVolVal = document.getElementById('settings-sound-volume-val');
-    if (settingsVol) {
-      settingsVol.addEventListener('input', (e) => {
-        const val = parseInt(e.target.value, 10) / 100;
-        if (window.soundFX && typeof window.soundFX.setVolume === 'function') {
-          window.soundFX.setVolume(val);
-        } else if (window.soundFX) {
-          window.soundFX.volume = val;
-          if (window.soundFX.masterGain && window.soundFX.ctx) {
-            window.soundFX.masterGain.gain.setValueAtTime(val, window.soundFX.ctx.currentTime);
-          }
-        }
-        if (settingsVolVal) settingsVolVal.textContent = `${e.target.value}%`;
-      });
-    }
+    if (settingsVol) settingsVol.addEventListener('input', (e) => handleVolumeChange(e.target.value));
+    const authSettingsVol = document.getElementById('auth-settings-sound-volume');
+    if (authSettingsVol) authSettingsVol.addEventListener('input', (e) => handleVolumeChange(e.target.value));
+
+    const handleHapticsChange = (enabled) => {
+      if (window.soundFX) window.soundFX.hapticsEnabled = enabled;
+      this.syncSettingsUI();
+      this.showToast(enabled ? "Vibrations haptiques activées" : "Vibrations désactivées", "📳");
+    };
 
     const settingsHaptics = document.getElementById('settings-toggle-haptics');
-    if (settingsHaptics) {
-      settingsHaptics.addEventListener('change', (e) => {
-        if (window.soundFX) window.soundFX.hapticsEnabled = e.target.checked;
-        this.showToast(e.target.checked ? "Vibrations haptiques activées" : "Vibrations désactivées", "📳");
-      });
-    }
+    if (settingsHaptics) settingsHaptics.addEventListener('change', (e) => handleHapticsChange(e.target.checked));
+    const authSettingsHaptics = document.getElementById('auth-settings-toggle-haptics');
+    if (authSettingsHaptics) authSettingsHaptics.addEventListener('change', (e) => handleHapticsChange(e.target.checked));
 
     // Sous-onglets de sélection d'Avatar (VIP Zynga vs Émojis)
     const tabAvVip = document.getElementById('tab-avatar-vip');
@@ -578,6 +606,19 @@ class HikaPokerApp {
     if (tabAuthReg) {
       tabAuthReg.addEventListener('click', () => this.switchAuthTab('register'));
     }
+    const tabAuthSettings = document.getElementById('tab-auth-settings');
+    if (tabAuthSettings) {
+      tabAuthSettings.addEventListener('click', () => this.switchAuthTab('settings'));
+    }
+
+    const tabAuthLoggedProfile = document.getElementById('tab-auth-logged-profile');
+    if (tabAuthLoggedProfile) {
+      tabAuthLoggedProfile.addEventListener('click', () => this.switchAuthTab('profile'));
+    }
+    const tabAuthLoggedSettings = document.getElementById('tab-auth-logged-settings');
+    if (tabAuthLoggedSettings) {
+      tabAuthLoggedSettings.addEventListener('click', () => this.switchAuthTab('settings'));
+    }
 
     const formLogin = document.getElementById('form-auth-login');
     if (formLogin) {
@@ -621,19 +662,6 @@ class HikaPokerApp {
       });
     }
 
-    // Onglets du Modal de Statistiques (Stats / Mes Mains / Leaderboard)
-    const tabStatsOverview = document.getElementById('tab-stats-overview');
-    if (tabStatsOverview) {
-      tabStatsOverview.addEventListener('click', () => this.switchStatsTab('overview'));
-    }
-    const tabStatsHands = document.getElementById('tab-stats-hands');
-    if (tabStatsHands) {
-      tabStatsHands.addEventListener('click', () => this.switchStatsTab('hands'));
-    }
-    const tabStatsLeader = document.getElementById('tab-stats-leaderboard');
-    if (tabStatsLeader) {
-      tabStatsLeader.addEventListener('click', () => this.switchStatsTab('leaderboard'));
-    }
 
     // Fermer le modal de résultat de tournoi
     const btnCloseTourneyRes = document.getElementById('btn-close-tourney-result');
@@ -659,10 +687,60 @@ class HikaPokerApp {
   applyTheme(theme) {
     const tableEl = document.getElementById('poker-table');
     if (!tableEl) return;
-    tableEl.classList.remove('felt-green', 'felt-blue', 'felt-red');
+    tableEl.classList.remove('felt-green', 'felt-blue', 'felt-red', 'felt-black');
     if (theme === 'blue') tableEl.classList.add('felt-blue');
     else if (theme === 'red') tableEl.classList.add('felt-red');
+    else if (theme === 'black') tableEl.classList.add('felt-black');
     else tableEl.classList.add('felt-green');
+  }
+
+  syncSettingsUI() {
+    const s = window.storageManager.getSettings();
+    const fourColor = !!s.fourColorDeck;
+    const theme = s.theme || 'green';
+    const isMuted = !!(window.soundFX && window.soundFX.muted);
+    const vol = window.soundFX ? window.soundFX.volume : 0.8;
+    const pct = Math.round(vol * 100);
+    const haptics = window.soundFX ? window.soundFX.hapticsEnabled !== false : true;
+
+    // 1. Cartes 4 Couleurs
+    ['toggle-four-color-deck', 'setting-four-color-deck', 'auth-setting-four-color-deck'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = fourColor;
+    });
+
+    // 2. Thème Tapis
+    ['table-theme-select', 'settings-theme-select', 'auth-settings-theme-select'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = theme;
+    });
+
+    // 3. Volume
+    [['settings-sound-volume', 'settings-sound-volume-val'], ['auth-settings-sound-volume', 'auth-settings-sound-volume-val']].forEach(([sliderId, valId]) => {
+      const sl = document.getElementById(sliderId);
+      const vl = document.getElementById(valId);
+      if (sl) sl.value = pct;
+      if (vl) vl.textContent = `${pct}%`;
+    });
+
+    // 4. Vibrations Haptiques
+    ['settings-toggle-haptics', 'auth-settings-toggle-haptics'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = haptics;
+    });
+
+    // 5. Boutons Audio
+    this.updateSoundButtonUI();
+
+    // 6. Supabase Config
+    if (window.supabaseClient) {
+      const url = window.supabaseClient.url || '';
+      const key = window.supabaseClient.anonKey || '';
+      const urlInput = document.getElementById('cfg-supabase-url');
+      const keyInput = document.getElementById('cfg-supabase-key');
+      if (urlInput) urlInput.value = url;
+      if (keyInput) keyInput.value = key;
+    }
   }
 
   updateUserHeader() {
@@ -711,14 +789,24 @@ class HikaPokerApp {
       btn.classList.toggle('border-rose-500/50', isMuted);
       btn.classList.toggle('bg-rose-950/40', isMuted);
     });
+
+    const settingsBtns = [
+      document.getElementById('settings-btn-toggle-sound'),
+      document.getElementById('auth-settings-btn-toggle-sound')
+    ];
+    settingsBtns.forEach((btn) => {
+      if (!btn) return;
+      btn.textContent = isMuted ? '🔇 Désactivé' : '🔊 Activé';
+      btn.classList.toggle('text-rose-400', isMuted);
+    });
   }
 
   // =========================================================================
   // GESTION DU MODAL STATS, MAINS & LEADERBOARD (AVEC ONGLETS)
   // =========================================================================
 
-  openStatsModal() {
-    this.switchStatsTab('overview');
+  openStatsModal(defaultTab = 'overview') {
+    this.switchStatsTab(defaultTab);
 
     const modal = document.getElementById('stats-modal');
     if (modal) {
@@ -799,32 +887,7 @@ class HikaPokerApp {
       }
       if (panelSettings) panelSettings.classList.remove('hidden');
 
-      // Synchroniser les contrôles des paramètres
-      const s = window.storageManager.getSettings();
-      const check4C = document.getElementById('setting-four-color-deck');
-      if (check4C) check4C.checked = !!s.fourColorDeck;
-
-      const themeSel = document.getElementById('settings-theme-select');
-      if (themeSel) themeSel.value = s.theme || 'green';
-
-      const volSlider = document.getElementById('settings-sound-volume');
-      const volVal = document.getElementById('settings-sound-volume-val');
-      const currentVol = window.soundFX ? window.soundFX.volume : 0.8;
-      const pct = Math.round(currentVol * 100);
-      if (volSlider) volSlider.value = pct;
-      if (volVal) volVal.textContent = `${pct}%`;
-
-      const soundBtn = document.getElementById('settings-btn-toggle-sound');
-      const isMuted = !!(window.soundFX && window.soundFX.muted);
-      if (soundBtn) {
-        soundBtn.textContent = isMuted ? '🔇 Désactivé' : '🔊 Activé';
-        soundBtn.classList.toggle('text-rose-400', isMuted);
-      }
-
-      const hapticsToggle = document.getElementById('settings-toggle-haptics');
-      if (hapticsToggle && window.soundFX) {
-        hapticsToggle.checked = window.soundFX.hapticsEnabled !== false;
-      }
+      this.syncSettingsUI();
     }
   }
 
@@ -940,19 +1003,19 @@ class HikaPokerApp {
   // GESTION DU MODAL AUTHENTIFICATION & COMPTE SUPABASE
   // =========================================================================
 
-  openAuthModal() {
+  openAuthModal(initialTab = null) {
     const modal = document.getElementById('auth-modal');
     if (!modal) return;
 
-    const loggedView = document.getElementById('auth-view-logged');
-    const guestView = document.getElementById('auth-view-guest');
+    const loggedTabs = document.getElementById('auth-tabs-logged');
+    const guestTabs = document.getElementById('auth-tabs-guest');
     const feedback = document.getElementById('auth-feedback');
     if (feedback) feedback.className = 'hidden';
 
     const user = window.supabaseClient && window.supabaseClient.getCurrentUser();
     if (user) {
-      if (loggedView) loggedView.classList.remove('hidden');
-      if (guestView) guestView.classList.add('hidden');
+      if (loggedTabs) loggedTabs.classList.remove('hidden');
+      if (guestTabs) guestTabs.classList.add('hidden');
 
       const prof = window.storageManager.getProfile();
       const stats = window.storageManager.getStats();
@@ -973,12 +1036,24 @@ class HikaPokerApp {
       if (chipsEl) chipsEl.textContent = `${prof.chips.toLocaleString()} 🪙`;
       if (wonEl) wonEl.textContent = stats.handsWon.toLocaleString();
 
+      if (initialTab === 'settings') {
+        this.switchAuthTab('settings');
+      } else {
+        this.switchAuthTab('profile');
+      }
     } else {
-      if (loggedView) loggedView.classList.add('hidden');
-      if (guestView) guestView.classList.remove('hidden');
+      if (loggedTabs) loggedTabs.classList.add('hidden');
+      if (guestTabs) guestTabs.classList.remove('hidden');
 
       this.populateAuthAvatarPicker();
-      this.switchAuthTab('login');
+
+      if (initialTab === 'settings') {
+        this.switchAuthTab('settings');
+      } else if (initialTab === 'register') {
+        this.switchAuthTab('register');
+      } else {
+        this.switchAuthTab('login');
+      }
 
       const urlInput = document.getElementById('cfg-supabase-url');
       const keyInput = document.getElementById('cfg-supabase-key');
@@ -987,6 +1062,7 @@ class HikaPokerApp {
     }
 
     this.populateAvatarPickers();
+    this.syncSettingsUI();
 
     modal.classList.remove('hidden');
     modal.classList.add('flex');
@@ -1107,35 +1183,100 @@ class HikaPokerApp {
   }
 
   switchAuthTab(tab) {
+    const isLogged = !!(window.supabaseClient && window.supabaseClient.getCurrentUser());
+
+    // Onglets
     const tabLogin = document.getElementById('tab-auth-login');
     const tabRegister = document.getElementById('tab-auth-register');
+    const tabSettings = document.getElementById('tab-auth-settings');
+    const tabLoggedProfile = document.getElementById('tab-auth-logged-profile');
+    const tabLoggedSettings = document.getElementById('tab-auth-logged-settings');
+
+    // Panneaux
+    const viewLogged = document.getElementById('auth-view-logged');
+    const viewGuest = document.getElementById('auth-view-guest');
     const formLogin = document.getElementById('form-auth-login');
     const formRegister = document.getElementById('form-auth-register');
+    const guestProfileSection = document.getElementById('auth-guest-profile-section');
+    const panelSettings = document.getElementById('auth-panel-settings');
     const feedback = document.getElementById('auth-feedback');
     if (feedback) feedback.className = 'hidden';
 
-    if (tab === 'login') {
-      if (tabLogin) {
-        tabLogin.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
-        tabLogin.classList.remove('text-slate-400');
+    const tabsGuest = [tabLogin, tabRegister, tabSettings];
+    tabsGuest.forEach((t) => {
+      if (t) {
+        t.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
+        t.classList.add('text-slate-400');
       }
-      if (tabRegister) {
-        tabRegister.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
-        tabRegister.classList.add('text-slate-400');
+    });
+
+    const tabsLogged = [tabLoggedProfile, tabLoggedSettings];
+    tabsLogged.forEach((t) => {
+      if (t) {
+        t.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
+        t.classList.add('text-slate-400');
       }
-      if (formLogin) formLogin.classList.remove('hidden');
-      if (formRegister) formRegister.classList.add('hidden');
-    } else {
+    });
+
+    if (tab === 'settings') {
+      if (tabSettings) {
+        tabSettings.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabSettings.classList.remove('text-slate-400');
+      }
+      if (tabLoggedSettings) {
+        tabLoggedSettings.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLoggedSettings.classList.remove('text-slate-400');
+      }
+      if (viewLogged) viewLogged.classList.add('hidden');
+      if (viewGuest) viewGuest.classList.add('hidden');
+      if (panelSettings) {
+        panelSettings.classList.remove('hidden');
+        panelSettings.classList.add('flex');
+      }
+      this.syncSettingsUI();
+
+    } else if (tab === 'profile' && isLogged) {
+      if (tabLoggedProfile) {
+        tabLoggedProfile.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLoggedProfile.classList.remove('text-slate-400');
+      }
+      if (viewLogged) {
+        viewLogged.classList.remove('hidden');
+        viewLogged.classList.add('flex');
+      }
+      if (viewGuest) viewGuest.classList.add('hidden');
+      if (panelSettings) panelSettings.classList.add('hidden');
+
+    } else if (tab === 'register') {
       if (tabRegister) {
         tabRegister.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
         tabRegister.classList.remove('text-slate-400');
       }
-      if (tabLogin) {
-        tabLogin.classList.remove('bg-amber-500', 'text-slate-950', 'shadow');
-        tabLogin.classList.add('text-slate-400');
+      if (viewGuest) {
+        viewGuest.classList.remove('hidden');
+        viewGuest.classList.add('flex');
       }
+      if (viewLogged) viewLogged.classList.add('hidden');
       if (formRegister) formRegister.classList.remove('hidden');
       if (formLogin) formLogin.classList.add('hidden');
+      if (guestProfileSection) guestProfileSection.classList.add('hidden');
+      if (panelSettings) panelSettings.classList.add('hidden');
+
+    } else {
+      // Par défaut : Connexion / Invité
+      if (tabLogin) {
+        tabLogin.classList.add('bg-amber-500', 'text-slate-950', 'shadow');
+        tabLogin.classList.remove('text-slate-400');
+      }
+      if (viewGuest) {
+        viewGuest.classList.remove('hidden');
+        viewGuest.classList.add('flex');
+      }
+      if (viewLogged) viewLogged.classList.add('hidden');
+      if (formLogin) formLogin.classList.remove('hidden');
+      if (formRegister) formRegister.classList.add('hidden');
+      if (guestProfileSection) guestProfileSection.classList.remove('hidden');
+      if (panelSettings) panelSettings.classList.add('hidden');
     }
   }
 

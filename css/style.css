@@ -22,6 +22,13 @@
     radial-gradient(ellipse at 50% 50%, #881337 0%, #4c0519 40%, #2a030d 80%, #150106 100%);
   background-color: #2a030d;
 }
+.felt-black {
+  background: 
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, #27272a 0%, #18181b 40%, #09090b 80%, #030303 100%);
+  background-color: #09090b;
+}
+
 
 /* Bordure en cuir et bois verni avec reflets dorés */
 .poker-table-border {

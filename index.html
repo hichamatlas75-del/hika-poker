@@ -120,12 +120,17 @@
       </button>
 
       <!-- Bouton Stats -->
-      <button id="btn-open-stats" title="Statistiques du joueur" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95">
+      <button id="btn-open-stats" title="Statistiques du joueur" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95 cursor-pointer">
         📊
       </button>
 
+      <!-- Bouton Options / Paramètres -->
+      <button id="btn-open-settings" title="Paramètres & Options du jeu (Cartes 4 couleurs, Tapis, Audio)" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95 cursor-pointer">
+        ⚙️
+      </button>
+
       <!-- Toggle Mute Audio -->
-      <button id="btn-toggle-sound" title="Son" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95">
+      <button id="btn-toggle-sound" title="Son" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-slate-700 shadow text-sm transition-transform active:scale-95 cursor-pointer">
         🔊
       </button>
     </div>
@@ -405,6 +410,7 @@
             <option value="green" selected>Feutre Vert</option>
             <option value="blue">Bleu Vegas</option>
             <option value="red">Rouge Velvet</option>
+            <option value="black">Noir Macau</option>
           </select>
         </div>
 
@@ -419,6 +425,11 @@
         <button id="btn-hand-replayer" title="Revoir le dénouement de la dernière main" class="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
           <span>👁️</span>
           <span class="hidden sm:inline">Revoir</span>
+        </button>
+
+        <!-- Bouton Paramètres sur la table -->
+        <button id="btn-table-open-settings" title="Paramètres & Options du jeu (Cartes 4 couleurs, Tapis, Audio)" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 shadow text-xs flex items-center justify-center transition-transform active:scale-95 cursor-pointer">
+          ⚙️
         </button>
 
         <!-- Toggle Mute Audio sur la table -->
@@ -644,9 +655,9 @@
     </div>
   </div>
 
-  <!-- Modal Authentification Supabase (Connexion / Inscription / Mode Invité) -->
+  <!-- Modal Authentification Supabase & Paramètres Joueur (Connexion / Inscription / Options / Mode Invité) -->
   <div id="auth-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
-    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-7 max-w-md w-full shadow-2xl relative flex flex-col overflow-hidden animate-fade-in">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 max-w-md w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
       <!-- Glows d'arrière-plan -->
       <div class="absolute -top-14 -right-14 w-36 h-36 bg-amber-500/15 rounded-full blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-14 -left-14 w-36 h-36 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -657,20 +668,46 @@
       </button>
 
       <!-- En-tête : Titre & Logo -->
-      <div class="flex items-center gap-3 mb-5">
-        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-yellow-500 to-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
           👑
         </div>
         <div>
           <h3 class="font-casino text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400">
             COMPTE JOUEUR
           </h3>
-          <p class="text-[11px] sm:text-xs text-slate-400">Sauvegarde Cloud en temps réel & Classement</p>
+          <p class="text-[11px] sm:text-xs text-slate-400">Profil, Paramètres & Sauvegarde Cloud</p>
         </div>
       </div>
 
+      <!-- ONGLET NAVIGATION POUR JOUEUR CONNECTÉ -->
+      <div id="auth-tabs-logged" class="hidden rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4 flex-shrink-0">
+        <button id="tab-auth-logged-profile" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all bg-amber-500 text-slate-950 shadow flex items-center justify-center gap-1">
+          <span>👑</span>
+          <span>MON PROFIL</span>
+        </button>
+        <button id="tab-auth-logged-settings" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1">
+          <span>⚙️</span>
+          <span>OPTIONS DU JEU</span>
+        </button>
+      </div>
+
+      <!-- ONGLET NAVIGATION POUR JOUEUR INVITÉ / NON CONNECTÉ -->
+      <div id="auth-tabs-guest" class="flex rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4 flex-shrink-0">
+        <button id="tab-auth-login" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all bg-amber-500 text-slate-950 shadow">
+          CONNEXION
+        </button>
+        <button id="tab-auth-register" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all text-slate-400 hover:text-white">
+          CRÉER UN COMPTE
+        </button>
+        <button id="tab-auth-settings" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all text-slate-400 hover:text-white flex items-center justify-center gap-1">
+          <span>⚙️</span>
+          <span>OPTIONS</span>
+        </button>
+      </div>
+
       <!-- VUE CONNECTÉ (Si déjà connecté à un compte Supabase) -->
-      <div id="auth-view-logged" class="hidden flex-col gap-4">
+      <div id="auth-view-logged" class="hidden flex-col gap-4 overflow-y-auto max-h-[380px] pr-1">
         <div class="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
           <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-600 flex items-center justify-center text-3xl shadow-md" id="auth-user-card-avatar">
             👑
@@ -722,18 +759,8 @@
         </button>
       </div>
 
-      <!-- VUE NON CONNECTÉ (Onglets Connexion / Inscription) -->
-      <div id="auth-view-guest" class="flex flex-col">
-        <!-- Onglets Connexion / Inscription -->
-        <div class="flex rounded-xl bg-slate-950/80 p-1 border border-slate-800 mb-4">
-          <button id="tab-auth-login" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all bg-amber-500 text-slate-950 shadow">
-            CONNEXION
-          </button>
-          <button id="tab-auth-register" class="flex-1 py-1.5 rounded-lg text-xs font-black transition-all text-slate-400 hover:text-white">
-            CRÉER UN COMPTE
-          </button>
-        </div>
-
+      <!-- VUE NON CONNECTÉ (Formulaires Connexion / Inscription / Mode Invité) -->
+      <div id="auth-view-guest" class="flex flex-col overflow-y-auto max-h-[380px] pr-1">
         <!-- Formulaire de Connexion -->
         <form id="form-auth-login" class="space-y-3">
           <div>
@@ -786,53 +813,153 @@
         <!-- Message d'alerte / feedback -->
         <div id="auth-feedback" class="hidden mt-3 p-2.5 rounded-xl text-xs font-semibold text-center"></div>
 
-        <!-- Séparateur & Mode Invité -->
-        <div class="flex items-center gap-2 my-3">
-          <div class="flex-1 h-px bg-slate-800"></div>
-          <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">OU</span>
-          <div class="flex-1 h-px bg-slate-800"></div>
-        </div>
-
-        <!-- Sélecteur d'Avatar pour Joueur Invité -->
-        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 mb-2">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-bold text-slate-300">Avatar Invité :</span>
-            <span class="text-[10px] text-amber-400 font-semibold" id="guest-selected-avatar-preview">Actuel : 👑</span>
+        <!-- Section Mode Invité (Visible sur l'onglet Connexion) -->
+        <div id="auth-guest-profile-section">
+          <!-- Séparateur & Mode Invité -->
+          <div class="flex items-center gap-2 my-3">
+            <div class="flex-1 h-px bg-slate-800"></div>
+            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">OU</span>
+            <div class="flex-1 h-px bg-slate-800"></div>
           </div>
-          <!-- Sous-onglets Galerie VIP vs Émojis -->
-          <div class="flex gap-1 mb-2 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
-            <button type="button" id="tab-guest-avatar-vip" class="flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all">
-              👑 Avatars VIP Zynga (10)
-            </button>
-            <button type="button" id="tab-guest-avatar-emoji" class="flex-1 py-1 rounded text-slate-400 hover:text-white transition-all">
-              😀 Émojis (16)
-            </button>
-          </div>
-          <div class="grid grid-cols-5 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5" id="guest-avatar-grid">
-            <!-- Rempli dynamiquement -->
-          </div>
-        </div>
 
-        <button id="btn-auth-guest" type="button" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
-          <span>👤</span>
-          <span>Continuer en tant qu'Invité (Sauvegarde locale)</span>
-        </button>
+          <!-- Sélecteur d'Avatar pour Joueur Invité -->
+          <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 mb-2">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-bold text-slate-300">Avatar Invité :</span>
+              <span class="text-[10px] text-amber-400 font-semibold" id="guest-selected-avatar-preview">Actuel : 👑</span>
+            </div>
+            <!-- Sous-onglets Galerie VIP vs Émojis -->
+            <div class="flex gap-1 mb-2 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800 text-[10px] font-bold">
+              <button type="button" id="tab-guest-avatar-vip" class="flex-1 py-1 rounded bg-amber-500 text-slate-950 font-black shadow transition-all">
+                👑 Avatars VIP Zynga (10)
+              </button>
+              <button type="button" id="tab-guest-avatar-emoji" class="flex-1 py-1 rounded text-slate-400 hover:text-white transition-all">
+                😀 Émojis (16)
+              </button>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 max-h-[160px] overflow-y-auto pr-0.5" id="guest-avatar-grid">
+              <!-- Rempli dynamiquement -->
+            </div>
+          </div>
 
-        <!-- Volet déroulant Configuration Supabase Personnalisée -->
-        <div class="mt-3 text-center">
-          <button id="auth-toggle-config-btn" type="button" class="text-[10px] text-slate-400 hover:text-amber-400 underline transition-colors">
-            ⚙️ Paramètres Supabase (URL / Clé)
+          <button id="btn-auth-guest" type="button" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
+            <span>👤</span>
+            <span>Continuer en tant qu'Invité (Sauvegarde locale)</span>
           </button>
-          <div id="auth-config-panel" class="hidden mt-2 p-3 bg-slate-950/90 border border-slate-800 rounded-xl text-left space-y-2">
-            <span class="text-[10px] text-slate-400 block leading-tight">Vous pouvez saisir votre propre URL et clé anonyme Supabase :</span>
-            <input type="text" id="cfg-supabase-url" placeholder="https://xyz.supabase.co" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-white outline-none">
-            <input type="text" id="cfg-supabase-key" placeholder="eyJhbGciOi..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-[11px] text-white outline-none">
-            <button id="btn-save-supabase-config" type="button" class="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 rounded-lg font-bold text-[10px]">
-              Enregistrer les clés
-            </button>
+        </div>
+      </div>
+
+      <!-- VOLET 3 : PARAMÈTRES & OPTIONS DU JEU (Accessible en direct pour tous) -->
+      <div id="auth-panel-settings" class="hidden flex-col space-y-3.5 overflow-y-auto max-h-[380px] pr-1">
+        <!-- 1. Cartes 4 Couleurs Optionnelles Internationales -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🃏</span>
+              <div>
+                <h4 class="text-xs font-black text-white">Jeu de Cartes 4 Couleurs (International)</h4>
+                <p class="text-[10px] text-slate-400 leading-tight">Option officielle pour joueurs réguliers. Différencie instantanément chaque famille.</p>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer select-none">
+              <input type="checkbox" id="auth-setting-four-color-deck" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
+          <!-- Aperçu visuel des 4 couleurs de cartes -->
+          <div class="grid grid-cols-4 gap-2 pt-1">
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-black block leading-none">♠</span>
+              <span class="text-[10px] font-bold text-slate-300 mt-1 block">Pique</span>
+              <span class="text-[9px] text-slate-400 font-mono">Noir</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-red block leading-none">♥</span>
+              <span class="text-[10px] font-bold text-red-400 mt-1 block">Cœur</span>
+              <span class="text-[9px] text-red-300 font-mono">Rouge</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-blue block leading-none">♦</span>
+              <span class="text-[10px] font-bold text-blue-400 mt-1 block">Carreau</span>
+              <span class="text-[9px] text-blue-300 font-mono">Bleu</span>
+            </div>
+            <div class="bg-slate-900 border border-slate-700/80 rounded-xl p-2 text-center shadow">
+              <span class="text-lg font-black suit-green block leading-none">♣</span>
+              <span class="text-[10px] font-bold text-emerald-400 mt-1 block">Trèfle</span>
+              <span class="text-[9px] text-emerald-300 font-mono">Vert</span>
+            </div>
           </div>
         </div>
 
+        <!-- 2. Thème du Tapis de Poker -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎰</span>
+            <div>
+              <h4 class="text-xs font-black text-white">Thème du Tapis de Poker</h4>
+              <p class="text-[10px] text-slate-400 leading-tight">Couleur du feutre feutré pour les tables Cash Game et Tournois.</p>
+            </div>
+          </div>
+          <select id="auth-settings-theme-select" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white outline-none cursor-pointer">
+            <option value="green">Feutre Vert Casino (Classique Las Vegas)</option>
+            <option value="blue">Bleu Royal Bellagio (High Roller)</option>
+            <option value="red">Rouge Ruby Monaco (VIP Lounge)</option>
+            <option value="black">Noir Velvet Macau (Prestige)</option>
+          </select>
+        </div>
+
+        <!-- 3. Ambiance Sonore & Audio -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-base">🔊</span>
+              <div>
+                <h4 class="text-xs font-black text-white">Effets Sonores & Clameur</h4>
+                <p class="text-[10px] text-slate-400 leading-tight">Cartes, jetons, double-knock et applaudissements du public.</p>
+              </div>
+            </div>
+            <button id="auth-settings-btn-toggle-sound" type="button" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400/50 text-xs font-bold text-slate-200 transition-colors cursor-pointer">
+              🔊 Activé
+            </button>
+          </div>
+          <div class="flex items-center gap-3 pt-1">
+            <span class="text-[10px] text-slate-400 font-bold">Volume :</span>
+            <input type="range" id="auth-settings-sound-volume" min="0" max="100" value="80" class="flex-1 accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer">
+            <span id="auth-settings-sound-volume-val" class="text-[11px] font-bold text-amber-300 w-8 text-right">80%</span>
+          </div>
+        </div>
+
+        <!-- 4. Vibrations Haptiques Mobile -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-base">📳</span>
+            <div>
+              <h4 class="text-xs font-black text-white">Vibrations Haptiques</h4>
+              <p class="text-[10px] text-slate-400 leading-tight">Retours vibratoires sur smartphone lors des tours et all-in.</p>
+            </div>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer select-none">
+            <input type="checkbox" id="auth-settings-toggle-haptics" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+          </label>
+        </div>
+
+        <!-- 5. Configuration Supabase Personnalisée -->
+        <div class="bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">☁️</span>
+            <div>
+              <h4 class="text-xs font-black text-white">Serveur Cloud Supabase</h4>
+              <p class="text-[10px] text-slate-400 leading-tight">Sauvegarde temps réel & classement mondial.</p>
+            </div>
+          </div>
+          <input type="text" id="cfg-supabase-url" placeholder="https://xyz.supabase.co" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none">
+          <input type="text" id="cfg-supabase-key" placeholder="eyJhbGciOi..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none">
+          <button id="btn-save-supabase-config" type="button" class="w-full py-2 bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 border border-amber-500/30 rounded-xl font-bold text-xs cursor-pointer active:scale-95 transition-all">
+            Enregistrer la configuration Cloud
+          </button>
+        </div>
       </div>
 
     </div>
