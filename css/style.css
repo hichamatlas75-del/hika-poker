@@ -646,36 +646,91 @@ input[type=range].raise-slider::-webkit-slider-thumb {
    Zéro chevauchement : La main du joueur est compacte et ne cache jamais la table
    ========================================================================== */
 @media (orientation: landscape) and (max-height: 650px) {
-  /* Header ultra-compact */
+  /* 1. Masquer le header lobby lors du jeu : zéro chevauchement en haut */
+  body.in-table-view header,
+  body:has(#table-view:not(.hidden)) header {
+    display: none !important;
+  }
+
+  /* Si dans le lobby en paysage, header compact */
   header {
     padding-top: 1px !important;
     padding-bottom: 1px !important;
     height: 32px !important;
+    overflow: hidden !important;
   }
   header .font-casino {
     font-size: 13px !important;
   }
 
-  /* Section de la table occupe 100% de la hauteur sans scroll vertical */
+  /* 2. Section Table plein écran 100dvh avec safe-area padding */
   #table-view {
-    padding: 2px 6px !important;
-    height: calc(100dvh - 32px) !important;
-    max-height: calc(100dvh - 32px) !important;
+    padding-top: 0 !important;
+    padding-bottom: max(2px, env(safe-area-inset-bottom)) !important;
+    padding-left: max(6px, env(safe-area-inset-left)) !important;
+    padding-right: max(6px, env(safe-area-inset-right)) !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
   }
 
+  /* 3. Barre HUD unique ultra-fine et élégante (28px) en haut */
   #table-hud-bar {
-    padding: 0 4px !important;
-    height: 18px !important;
+    padding: 2px 8px !important;
+    height: 28px !important;
+    min-height: 28px !important;
     margin-bottom: 0 !important;
+    background: rgba(2, 6, 23, 0.88) !important;
+    backdrop-filter: blur(8px) !important;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3) !important;
+    border-radius: 0 0 12px 12px !important;
+    z-index: 40 !important;
+  }
+  #btn-leave-table {
+    padding: 1px 7px !important;
+    height: 22px !important;
+    font-size: 10px !important;
   }
   #current-table-title {
     font-size: 11px !important;
+    max-width: 140px !important;
+  }
+  #tournament-hud {
+    height: 22px !important;
+    padding: 1px 6px !important;
+    font-size: 9px !important;
+  }
+  #table-hud-chips-badge {
+    height: 22px !important;
+    padding: 1px 6px !important;
+    font-size: 10px !important;
+  }
+  #btn-toggle-pause,
+  #btn-hand-replayer {
+    padding: 1px 6px !important;
+    height: 22px !important;
+    font-size: 10px !important;
+  }
+  #btn-table-toggle-sound {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+  }
+  #table-theme-select {
+    padding: 0 3px !important;
+    height: 20px !important;
+    font-size: 9px !important;
+  }
+  #toggle-four-color-deck {
+    height: 20px !important;
+    padding: 0 4px !important;
+    font-size: 9px !important;
   }
 
+  /* 4. Table de poker calibrée pour éviter tout écrasement vertical */
   #poker-table-wrapper {
     min-height: 0 !important;
     margin: 0 auto !important;
@@ -684,13 +739,14 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     align-items: center !important;
     justify-content: center !important;
     width: 100% !important;
+    position: relative !important;
   }
 
   #poker-table {
-    height: clamp(230px, calc(100dvh - 86px), 330px) !important;
+    height: clamp(195px, calc(100dvh - 76px), 265px) !important;
     max-width: 96% !important;
     border-radius: 120px !important;
-    border-width: 6px !important;
+    border-width: 5px !important;
   }
   .table-leather-stitch {
     border-radius: 114px !important;
@@ -698,10 +754,10 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   }
   .table-inner-ring {
     border-radius: 106px !important;
-    inset: 12px !important;
+    inset: 10px !important;
   }
 
-  /* ÉLÉVATION CRUCIALE DU CENTRE DE LA TABLE (évite tout chevauchement avec la main du joueur) */
+  /* ÉLÉVATION DU CENTRE DE LA TABLE (Pot & Community cards) */
   .center-table-group {
     top: 36% !important;
     transform: translate(-50%, -36%) !important;
@@ -737,7 +793,7 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     margin-bottom: 1px !important;
   }
 
-  /* Bannière de Victoire au Showdown : sous les cartes en Paysage */
+  /* Bannière de Victoire au Showdown */
   #winner-banner {
     top: calc(100% + 4px) !important;
   }
@@ -758,25 +814,29 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     padding: 1px 5px !important;
   }
 
-  /* JOUEUR HUMAIN (SIÈGE 0) : COMPACT ET COLLÉ AU BORD INFÉRIEUR */
+  /* 5. JOUEUR HUMAIN (SIÈGE 0) : SUR LE TAPIS, 100% VISIBLE ET SANS OBSTRUCTION */
   .seat-pos-0 {
-    bottom: -6px !important;
+    bottom: 3px !important;
     left: 50% !important;
     transform: translateX(-50%) !important;
-    z-index: 25 !important;
+    z-index: 28 !important;
   }
 
   .hero-seat-pod {
-    padding: 2px 6px !important;
-    border-radius: 12px !important;
-    max-height: 54px !important;
-    gap: 6px !important;
+    padding: 2px 8px !important;
+    border-radius: 14px !important;
+    max-height: 58px !important;
+    gap: 8px !important;
+    background: rgba(2, 6, 23, 0.90) !important;
+    border: 2px solid rgba(245, 158, 11, 0.55) !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.8) !important;
+    position: relative !important;
   }
 
   .hero-seat-pod .rounded-full {
-    width: 32px !important;
-    height: 32px !important;
-    min-width: 32px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
   }
 
   .hero-seat-pod .rounded-full span {
@@ -789,25 +849,60 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     line-height: 1.1 !important;
   }
 
-  /* Cartes privées du joueur humain en Paysage : compactes pour ne jamais cacher le tapis */
+  /* Jeton de mise du joueur humain : décalé au-dessus de l'avatar vers le centre, JAMAIS sur les cartes */
+  .seat-pos-0 .player-bet-chip {
+    top: -24px !important;
+    left: 18px !important;
+    transform: none !important;
+    z-index: 32 !important;
+    font-size: 9px !important;
+    padding: 1px 5px !important;
+  }
+
+  /* Badge d'action du joueur humain : centré sous l'avatar sans déborder sur les cartes */
+  .hero-seat-pod .seat-status-badge {
+    bottom: -5px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    font-size: 8px !important;
+    padding: 0.5px 5px !important;
+    z-index: 32 !important;
+  }
+
+  /* Badge Win-Chance Zynga : centré au-dessus de l'avatar uniquement */
+  .hero-seat-pod .win-chance-badge {
+    top: -10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    font-size: 8px !important;
+    padding: 0 4px !important;
+    z-index: 26 !important;
+  }
+
+  /* CARTES DU JOUEUR HUMAIN : GRANDES, CRISTALLINES ET DÉGAGÉES */
+  .hero-hole-cards {
+    margin-left: 0 !important;
+    position: relative !important;
+    z-index: 30 !important;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.9)) !important;
+  }
+
   .poker-card-human {
-    width: 36px !important;
-    height: 50px !important;
+    width: 40px !important;
+    height: 56px !important;
   }
   .poker-card-human .card-front {
     padding: 2px 3px !important;
   }
   .poker-card-human .card-front span {
-    font-size: 10px !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
   }
   .poker-card-human .card-front div:nth-child(2) {
-    font-size: 14px !important;
-  }
-  .hero-hole-cards {
-    margin-left: -4px !important;
+    font-size: 16px !important;
   }
 
-  /* BOTS : POSITIONS ET TAILLES OPTIMISÉES DANS LES COURBURES DE L'OVALE */
+  /* 6. BOTS : POSITIONS ET TAILLES OPTIMISÉES DANS LES COURBURES DE L'OVALE */
   .seat-pos-1 {
     bottom: 12% !important;
     left: 3% !important;
@@ -855,19 +950,52 @@ input[type=range].raise-slider::-webkit-slider-thumb {
     max-width: 50px !important;
   }
 
-  /* CONTRÔLES COMPACTS EN BAS */
+  /* 7. DÉGAGEMENT DU BADGE DE MAIN : DÉPLACÉ EN BAS À GAUCHE HORS DES CARTES */
+  #my-hand-badge-container {
+    position: absolute !important;
+    left: max(8px, env(safe-area-inset-left)) !important;
+    bottom: 36px !important;
+    margin: 0 !important;
+    z-index: 35 !important;
+    max-width: 260px !important;
+    padding: 2px 8px !important;
+    background: rgba(2, 6, 23, 0.92) !important;
+    border: 1px solid rgba(245, 158, 11, 0.5) !important;
+    border-radius: 9999px !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75) !important;
+    pointer-events: auto !important;
+  }
+  #my-hand-rank-text {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+  }
+  #my-hand-equity-pill {
+    font-size: 9px !important;
+    padding: 1px 6px !important;
+  }
+
+  /* 8. CONTRÔLES D'ACTION COMPACTS EN BAS */
+  #player-controls {
+    position: relative !important;
+    z-index: 33 !important;
+    width: 100% !important;
+  }
   #action-bar-container {
-    padding-bottom: 2px !important;
+    padding: 0 4px 2px 4px !important;
+    width: 100% !important;
   }
   #action-bar {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     gap: 4px !important;
+    max-width: 620px !important;
+    margin: 0 auto !important;
   }
   .btn-zynga {
-    padding: 4px 6px !important;
+    padding: 3px 6px !important;
     font-size: 10px !important;
-    min-height: 30px !important;
+    font-weight: 900 !important;
+    min-height: 28px !important;
     border-radius: 8px !important;
   }
   .btn-zynga span:last-child {
@@ -875,22 +1003,17 @@ input[type=range].raise-slider::-webkit-slider-thumb {
   }
 
   #pre-action-bar {
-    padding: 2px 6px !important;
+    padding: 2px 8px !important;
     font-size: 9px !important;
-  }
-
-  #my-hand-badge-container {
-    margin-bottom: 1px !important;
-    padding: 1px 6px !important;
-  }
-  #my-hand-rank-text {
-    font-size: 9px !important;
+    max-width: 480px !important;
+    margin: 0 auto !important;
   }
 
   #raise-slider-container {
-    bottom: 38px !important;
-    padding: 6px 10px !important;
-    max-width: 360px !important;
+    bottom: 34px !important;
+    padding: 4px 8px !important;
+    max-width: 340px !important;
+    z-index: 50 !important;
   }
 }
 

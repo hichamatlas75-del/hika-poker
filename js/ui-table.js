@@ -330,7 +330,7 @@ class TableUI {
         const lbl = actionLabels[p.lastAction] || p.lastAction.toUpperCase();
         const cls = actionBg[p.lastAction] || 'bg-slate-800 text-white border-slate-600';
         statusBadge = `
-          <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-1.5 py-0.2 rounded-full text-[8px] sm:text-[9px] font-black tracking-wider uppercase border shadow-md z-20 ${cls}">
+          <div class="seat-status-badge absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-1.5 py-0.2 rounded-full text-[8px] sm:text-[9px] font-black tracking-wider uppercase border shadow-md z-20 ${cls}">
             ${lbl}
           </div>
         `;
@@ -455,7 +455,7 @@ class TableUI {
 
   getBetPositionClass(uiIdx) {
     switch (uiIdx) {
-      case 0: return '-top-6 left-1/2 -translate-x-1/2'; // Bas centre vers le pot
+      case 0: return '-top-6 left-6'; // Bas centre : au-dessus de l'avatar vers le pot (zéro obstruction des cartes)
       case 1: return '-right-6 top-1/2 -translate-y-1/2'; // Bas gauche vers le centre
       case 2: return '-right-6 top-1/2 -translate-y-1/2'; // Haut gauche vers le centre
       case 3: return '-bottom-6 left-1/2 -translate-x-1/2'; // Haut centre vers le pot

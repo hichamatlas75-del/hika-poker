@@ -384,16 +384,22 @@
         </div>
       </div>
 
-      <!-- Actions de Table : Pause & Thème -->
-      <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Actions de Table : Bankroll, Pause, Thème, 4 Couleurs, Revoir & Son -->
+      <div class="flex items-center gap-1 sm:gap-1.5 md:gap-2">
+        <!-- Solde de Jetons Joueur à la Table (Pratique et compact en paysage) -->
+        <div id="table-hud-chips-badge" class="flex items-center gap-1 bg-slate-900/90 border border-amber-500/30 px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold text-amber-300 shadow-sm" title="Votre bankroll totale">
+          <span>🪙</span>
+          <span id="table-hud-chips-text">20,000</span>
+        </div>
+
         <!-- Bouton Pause / Reprendre -->
-        <button id="btn-toggle-pause" title="Mettre en pause ou reprendre la partie (Raccourci: P)" class="relative z-40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/50 text-xs font-black transition-all active:scale-95 flex items-center gap-1.5 shadow-md cursor-pointer">
+        <button id="btn-toggle-pause" title="Mettre en pause ou reprendre la partie (Raccourci: P)" class="relative z-40 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-xl bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/50 text-[10px] sm:text-xs font-black transition-all active:scale-95 flex items-center gap-1 shadow-md cursor-pointer">
           <span id="pause-btn-icon" class="text-xs sm:text-sm">⏸️</span>
-          <span id="pause-btn-text" class="text-xs font-black">Pause</span>
+          <span id="pause-btn-text" class="text-[10px] sm:text-xs font-black">Pause</span>
         </button>
 
         <!-- Thème du tapis -->
-        <div class="flex items-center gap-1">
+        <div class="hidden md:flex items-center gap-1">
           <label for="table-theme-select" class="text-[9px] sm:text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
           <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none cursor-pointer">
             <option value="green" selected>Feutre Vert</option>
@@ -410,9 +416,14 @@
         </label>
 
         <!-- Bouton Revoir la dernière main -->
-        <button id="btn-hand-replayer" title="Revoir le dénouement de la dernière main" class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
+        <button id="btn-hand-replayer" title="Revoir le dénouement de la dernière main" class="px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
           <span>👁️</span>
           <span class="hidden sm:inline">Revoir</span>
+        </button>
+
+        <!-- Toggle Mute Audio sur la table -->
+        <button id="btn-table-toggle-sound" title="Couper ou activer le son (Raccourci: M)" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 shadow text-xs flex items-center justify-center transition-transform active:scale-95 cursor-pointer">
+          🔊
         </button>
       </div>
     </div>

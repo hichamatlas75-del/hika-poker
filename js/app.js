@@ -287,17 +287,18 @@ class HikaPokerApp {
       });
     }
 
-    // Toggle Son (Mute)
+    // Toggle Son (Mute) - Lobby & Table
+    const soundToggleHandler = () => {
+      if (window.soundFX) {
+        const isMuted = window.soundFX.toggleMute();
+        this.updateSoundButtonUI();
+        this.showToast(isMuted ? 'Son désactivé' : 'Son activé', isMuted ? '🔇' : '🔊');
+      }
+    };
     const btnToggleSound = document.getElementById('btn-toggle-sound');
-    if (btnToggleSound) {
-      btnToggleSound.addEventListener('click', () => {
-        if (window.soundFX) {
-          const isMuted = window.soundFX.toggleMute();
-          this.updateSoundButtonUI();
-          this.showToast(isMuted ? 'Son désactivé' : 'Son activé', isMuted ? '🔇' : '🔊');
-        }
-      });
-    }
+    if (btnToggleSound) btnToggleSound.addEventListener('click', soundToggleHandler);
+    const btnTableToggleSound = document.getElementById('btn-table-toggle-sound');
+    if (btnTableToggleSound) btnTableToggleSound.addEventListener('click', soundToggleHandler);
 
     // Bouton Profil / Stats Modal
     const btnOpenStats = document.getElementById('btn-open-stats');
@@ -539,6 +540,8 @@ class HikaPokerApp {
     if (nameEl) nameEl.textContent = prof.name;
     if (chipsEl) chipsEl.textContent = prof.chips.toLocaleString();
     if (avatarEl) avatarEl.textContent = prof.avatar || '👑';
+    const tableChipsEl = document.getElementById('table-hud-chips-text');
+    if (tableChipsEl) tableChipsEl.textContent = prof.chips.toLocaleString();
 
     if (window.storageManager && typeof window.storageManager.updateCloudStatusIndicator === 'function') {
       const isCloud = window.supabaseClient && window.supabaseClient.isReady() && !!window.supabaseClient.getCurrentUser();
@@ -549,18 +552,25 @@ class HikaPokerApp {
   updateChipsDisplay(newChips) {
     const chipsEl = document.getElementById('user-header-chips');
     if (chipsEl) chipsEl.textContent = newChips.toLocaleString();
+    const tableChipsEl = document.getElementById('table-hud-chips-text');
+    if (tableChipsEl) tableChipsEl.textContent = newChips.toLocaleString();
   }
 
   updateSoundButtonUI() {
-    const btn = document.getElementById('btn-toggle-sound');
-    if (!btn || !window.soundFX) return;
-    const isMuted = !!window.soundFX.muted;
-    btn.innerHTML = isMuted ? '🔇' : '🔊';
-    btn.title = isMuted ? 'Activer le son (Raccourci M)' : 'Couper le son (Raccourci M)';
-    btn.setAttribute('aria-label', isMuted ? 'Activer le son' : 'Couper le son');
-    btn.classList.toggle('text-rose-400', isMuted);
-    btn.classList.toggle('border-rose-500/50', isMuted);
-    btn.classList.toggle('bg-rose-950/40', isMuted);
+    const isMuted = !!(window.soundFX && window.soundFX.muted);
+    const btns = [
+      document.getElementById('btn-toggle-sound'),
+      document.getElementById('btn-table-toggle-sound')
+    ];
+    btns.forEach((btn) => {
+      if (!btn) return;
+      btn.innerHTML = isMuted ? '🔇' : '🔊';
+      btn.title = isMuted ? 'Activer le son (Raccourci M)' : 'Couper le son (Raccourci M)';
+      btn.setAttribute('aria-label', isMuted ? 'Activer le son' : 'Couper le son');
+      btn.classList.toggle('text-rose-400', isMuted);
+      btn.classList.toggle('border-rose-500/50', isMuted);
+      btn.classList.toggle('bg-rose-950/40', isMuted);
+    });
   }
 
   // =========================================================================
@@ -1355,6 +1365,7 @@ class HikaPokerApp {
     this.botStepRemaining = 0;
     this.nextHandRemaining = 0;
     this.updatePauseUI(false);
+    document.body.classList.add('in-table-view');
     document.getElementById('lobby-view').classList.add('hidden');
     document.getElementById('table-view').classList.remove('hidden');
     document.getElementById('current-table-title').textContent = tableName;
@@ -1393,6 +1404,7 @@ class HikaPokerApp {
     window.tableUI.stopTurnTimer();
     window.playerControlsUI.hideAll();
 
+    document.body.classList.remove('in-table-view');
     document.getElementById('table-view').classList.add('hidden');
     document.getElementById('lobby-view').classList.remove('hidden');
     this.updateUserHeader();
