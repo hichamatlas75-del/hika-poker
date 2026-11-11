@@ -105,6 +105,14 @@
         <span class="hidden sm:inline">INSTALLER</span>
       </button>
 
+      <!-- Bouton Daily Login Bonus 7 Jours -->
+      <button id="btn-open-daily-bonus" title="Bonus Quotidien de Connexion" class="relative group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs md:text-sm px-2.5 md:px-3 py-1.5 rounded-full shadow-lg shadow-emerald-900/40 flex items-center gap-1.5 transition-transform active:scale-95">
+        <span>🎁</span>
+        <span class="hidden sm:inline">BONUS</span>
+        <span id="daily-bonus-ping" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-400 animate-ping"></span>
+        <span id="daily-bonus-dot" class="hidden absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-yellow-400 border border-slate-900"></span>
+      </button>
+
       <!-- Bouton Lucky Wheel -->
       <button id="btn-open-lucky-wheel" class="relative group bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs md:text-sm px-2.5 md:px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 flex items-center gap-1.5 transition-transform active:scale-95 animate-pulse">
         <span>🎡</span>
@@ -290,11 +298,27 @@
           <h3 class="text-lg font-black text-red-200 mb-1">Championship</h3>
           <p class="text-xs text-slate-400 mb-3">Mode éliminatoire direct ! Blinds progressives.</p>
           
-          <div class="space-y-1.5 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
-            <div class="flex justify-between">
-              <span class="text-slate-400">Structure :</span>
-              <span class="font-bold text-amber-300">Progressive</span>
+          <!-- Sélecteur de Vitesse du Tournoi -->
+          <div class="mb-3">
+            <div class="flex items-center justify-between text-[10px] text-slate-400 font-bold mb-1">
+              <span>Vitesse & Tapis :</span>
+              <span id="tourney-speed-badge" class="text-amber-300 font-black">⚖️ Normal (3,000 🪙)</span>
             </div>
+            <div class="grid grid-cols-3 gap-1 p-0.5 bg-slate-950/80 rounded-xl border border-slate-800" id="tourney-speed-selector">
+              <button type="button" data-speed="turbo" class="btn-tourney-speed py-1 rounded-lg text-[10px] font-black text-slate-400 hover:text-white transition-all flex items-center justify-center gap-0.5 cursor-pointer">
+                <span>⚡</span><span>Turbo</span>
+              </button>
+              <button type="button" data-speed="normal" class="btn-tourney-speed py-1 rounded-lg text-[10px] font-black bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow transition-all flex items-center justify-center gap-0.5 cursor-pointer">
+                <span>⚖️</span><span>Normal</span>
+              </button>
+              <button type="button" data-speed="deepstack" class="btn-tourney-speed py-1 rounded-lg text-[10px] font-black text-slate-400 hover:text-white transition-all flex items-center justify-center gap-0.5 cursor-pointer">
+                <span>🛡️</span><span>Deep</span>
+              </button>
+            </div>
+            <p id="tourney-speed-desc" class="text-[9px] text-amber-300/80 mt-1 text-center font-medium">4 mains / niveau • 3,000 jetons départ</p>
+          </div>
+
+          <div class="space-y-1 mb-4 text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
             <div class="flex justify-between">
               <span class="text-slate-400">Buy-in :</span>
               <span class="font-bold text-red-400">2,500 🪙</span>
@@ -306,8 +330,8 @@
           </div>
         </div>
 
-        <button id="btn-start-tournament" class="w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-red-600 via-rose-500 to-red-600 hover:from-red-500 hover:to-rose-400 text-white shadow-xl shadow-red-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5">
-          <span>TOURNOI</span>
+        <button id="btn-start-tournament" class="w-full py-2.5 rounded-xl font-black text-xs md:text-sm tracking-wide bg-gradient-to-r from-red-600 via-rose-500 to-red-600 hover:from-red-500 hover:to-rose-400 text-white shadow-xl shadow-red-500/30 transition-transform active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer">
+          <span>COMMENCER LE TOURNOI</span>
           <span>🏆</span>
         </button>
       </div>
@@ -371,12 +395,25 @@
         <!-- Thème du tapis -->
         <div class="flex items-center gap-1">
           <label for="table-theme-select" class="text-[9px] sm:text-[10px] font-bold text-slate-400 hidden sm:inline">Tapis :</label>
-          <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none">
+          <select id="table-theme-select" class="bg-slate-900/90 border border-slate-700 text-slate-300 text-[10px] sm:text-xs rounded-md px-1 sm:px-1.5 py-0.5 outline-none cursor-pointer">
             <option value="green" selected>Feutre Vert</option>
             <option value="blue">Bleu Vegas</option>
             <option value="red">Rouge Velvet</option>
           </select>
         </div>
+
+        <!-- Toggle 4 Couleurs Deck (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert) -->
+        <label for="toggle-four-color-deck" class="flex items-center gap-1 cursor-pointer bg-slate-900/90 border border-slate-700 hover:border-amber-400/50 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-xs text-slate-300 font-bold transition-colors select-none" title="Activer le jeu de cartes à 4 couleurs (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)">
+          <input type="checkbox" id="toggle-four-color-deck" class="rounded text-amber-500 focus:ring-0 w-3 h-3 cursor-pointer">
+          <span class="hidden md:inline">4 Couleurs</span>
+          <span class="md:hidden">4C</span>
+        </label>
+
+        <!-- Bouton Revoir la dernière main -->
+        <button id="btn-hand-replayer" title="Revoir le dénouement de la dernière main" class="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-bold transition-all active:scale-95 flex items-center gap-1 cursor-pointer">
+          <span>👁️</span>
+          <span class="hidden sm:inline">Revoir</span>
+        </button>
       </div>
     </div>
 
@@ -648,7 +685,18 @@
           </div>
         </div>
 
-        <button id="btn-auth-logout" class="w-full py-2.5 rounded-xl font-bold text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+        <!-- Sélecteur d'Avatar pour Joueur Connecté -->
+        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold text-slate-300">Modifier votre Avatar :</span>
+            <span class="text-[10px] text-amber-400 font-semibold" id="auth-selected-avatar-preview">Actuel : 👑</span>
+          </div>
+          <div class="grid grid-cols-8 gap-1.5" id="profile-avatar-grid">
+            <!-- Rempli dynamiquement -->
+          </div>
+        </div>
+
+        <button id="btn-auth-logout" class="w-full py-2.5 rounded-xl font-bold text-xs bg-red-950/40 hover:bg-red-900/60 text-red-300 border border-red-500/30 transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
           <span>🚪</span>
           <span>Se déconnecter (Revenir au Mode Invité)</span>
         </button>
@@ -725,7 +773,18 @@
           <div class="flex-1 h-px bg-slate-800"></div>
         </div>
 
-        <button id="btn-auth-guest" type="button" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center justify-center gap-1.5 active:scale-95">
+        <!-- Sélecteur d'Avatar pour Joueur Invité -->
+        <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 mb-2">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-bold text-slate-300">Avatar Invité :</span>
+            <span class="text-[10px] text-amber-400 font-semibold" id="guest-selected-avatar-preview">Actuel : 👑</span>
+          </div>
+          <div class="grid grid-cols-8 gap-1.5" id="guest-avatar-grid">
+            <!-- Rempli dynamiquement -->
+          </div>
+        </div>
+
+        <button id="btn-auth-guest" type="button" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer">
           <span>👤</span>
           <span>Continuer en tant qu'Invité (Sauvegarde locale)</span>
         </button>
@@ -942,6 +1001,96 @@
         </button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Modal Bonus Quotidien de Connexion 7 Jours (Daily Login Bonus) -->
+  <div id="daily-bonus-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl relative flex flex-col overflow-hidden animate-fade-in">
+      <div class="absolute -top-14 -right-14 w-36 h-36 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-14 -left-14 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Fermer -->
+      <button id="btn-close-daily-bonus" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer">
+        ✕
+      </button>
+
+      <!-- Titre & Badge -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-500 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30">
+          🎁
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500 text-slate-950">
+              CADEAU DU JOUR
+            </span>
+            <span id="daily-bonus-streak-tag" class="text-xs text-amber-300 font-bold">Série : 0 jour</span>
+          </div>
+          <h3 class="font-casino text-lg sm:text-xl font-black text-white mt-0.5">
+            BONUS QUOTIDIEN SUR 7 JOURS
+          </h3>
+          <p class="text-[11px] sm:text-xs text-slate-400">Connectez-vous chaque jour consécutif pour décrocher le Jackpot du 7ème jour !</p>
+        </div>
+      </div>
+
+      <!-- Grille des 7 jours -->
+      <div class="grid grid-cols-4 sm:grid-cols-7 gap-2 mb-4" id="daily-bonus-days-grid">
+        <!-- Généré dynamiquement en JS -->
+      </div>
+
+      <!-- Statut du jour et compte à rebours -->
+      <div id="daily-bonus-status-banner" class="mb-4 p-3 rounded-2xl bg-slate-950/80 border border-slate-800 text-center">
+        <span id="daily-bonus-status-text" class="text-xs font-bold text-slate-300 block">Chargement du statut...</span>
+        <span id="daily-bonus-timer-text" class="text-[11px] text-amber-300 font-mono mt-0.5 block"></span>
+      </div>
+
+      <!-- Bouton Récupérer -->
+      <button id="btn-claim-daily-bonus" class="w-full py-3.5 rounded-xl font-black text-xs sm:text-sm tracking-wide uppercase bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+        <span>🎁</span>
+        <span id="btn-claim-daily-bonus-label">RÉCUPÉRER MON CADEAU</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Revoir la Dernière Main (Hand Replayer) -->
+  <div id="hand-replayer-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden items-center justify-center p-3 sm:p-4 select-none">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-amber-500/50 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl relative flex flex-col max-h-[92vh] overflow-hidden animate-fade-in">
+      <button id="btn-close-hand-replayer" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold w-8 h-8 rounded-full bg-slate-800/80 hover:bg-slate-700 flex items-center justify-center transition-colors cursor-pointer">
+        ✕
+      </button>
+
+      <!-- En-tête -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shadow-md">
+          👁️
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-base sm:text-lg font-black text-white">Revue de la Dernière Main</h3>
+            <span id="replayer-hand-time" class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full"></span>
+          </div>
+          <p id="replayer-table-name" class="text-[11px] sm:text-xs text-amber-300 font-semibold">Table Amateur • Pot : 0 🪙</p>
+        </div>
+      </div>
+
+      <!-- Zone Cartes du Board -->
+      <div class="bg-slate-950/90 rounded-2xl p-3 border border-slate-800 mb-3 flex flex-col items-center">
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Cartes du Tapis (Board Commun)</span>
+        <div id="replayer-board-cards" class="flex items-center justify-center gap-1.5 sm:gap-2 min-h-[50px]">
+          <span class="text-xs text-slate-500 italic">Aucune carte communautaire</span>
+        </div>
+      </div>
+
+      <!-- Liste des Joueurs et Combinaisons -->
+      <div class="flex-1 overflow-y-auto space-y-2 pr-1 mb-4" id="replayer-players-list">
+        <!-- Rempli dynamiquement -->
+      </div>
+
+      <!-- Bouton Fermer -->
+      <button id="btn-replayer-close-bottom" class="w-full py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer">
+        Fermer la Revue
+      </button>
     </div>
   </div>
 

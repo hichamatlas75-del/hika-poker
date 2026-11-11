@@ -3,6 +3,33 @@
  * Gère les paliers de blinds, l'élimination des joueurs et le podium.
  */
 
+const TOURNAMENT_SPEEDS = {
+  turbo: {
+    key: 'turbo',
+    name: 'Turbo',
+    icon: '⚡',
+    startingChips: 1500,
+    handsPerLevel: 2,
+    desc: '2 mains / niveau - Action fulgurante'
+  },
+  normal: {
+    key: 'normal',
+    name: 'Normal',
+    icon: '⚖️',
+    startingChips: 3000,
+    handsPerLevel: 4,
+    desc: '4 mains / niveau - Équilibré & tactique'
+  },
+  deepstack: {
+    key: 'deepstack',
+    name: 'Deepstack',
+    icon: '🛡️',
+    startingChips: 5000,
+    handsPerLevel: 7,
+    desc: '7 mains / niveau - Poker profond & technique'
+  }
+};
+
 const TOURNAMENT_CONFIGS = {
   buyIn: 2500,
   startingChips: 3000,
@@ -15,19 +42,22 @@ const TOURNAMENT_CONFIGS = {
     { smallBlind: 400, bigBlind: 800, ante: 100 },
     { smallBlind: 800, bigBlind: 1600, ante: 200 }
   ],
-  handsPerLevel: 3
+  handsPerLevel: 4,
+  speeds: TOURNAMENT_SPEEDS
 };
 
 class TournamentManager {
   constructor() {
     this.active = false;
+    this.speed = 'normal';
     this.eliminated = []; // Liste chronologique des éliminés: [joueur1_sorti, ...]
     this.totalPlayers = 6;
     this.prizePool = TOURNAMENT_CONFIGS.buyIn * this.totalPlayers;
   }
 
-  start(humanPlayer, botList) {
+  start(humanPlayer, botList, speedKey = 'normal') {
     this.active = true;
+    this.speed = speedKey;
     this.eliminated = [];
     this.totalPlayers = 1 + botList.length;
     this.prizePool = TOURNAMENT_CONFIGS.buyIn * this.totalPlayers;
@@ -111,6 +141,7 @@ class TournamentManager {
   toJSON() {
     return {
       active: this.active,
+      speed: this.speed || 'normal',
       eliminated: this.eliminated.slice(),
       totalPlayers: this.totalPlayers,
       prizePool: this.prizePool,
@@ -121,6 +152,7 @@ class TournamentManager {
   fromJSON(d) {
     if (!d) return;
     this.active = !!d.active;
+    this.speed = d.speed || 'normal';
     this.eliminated = Array.isArray(d.eliminated) ? d.eliminated.slice() : [];
     this.totalPlayers = d.totalPlayers || 6;
     this.prizePool = d.prizePool || (TOURNAMENT_CONFIGS.buyIn * this.totalPlayers);
@@ -143,8 +175,9 @@ class TournamentManager {
     const remainingEl = document.getElementById('tourney-remaining');
     if (remainingEl) remainingEl.textContent = `${remainingCount}/${this.totalPlayers}`;
 
+    const speedInfo = TOURNAMENT_SPEEDS[this.speed] || TOURNAMENT_SPEEDS.normal;
     const levelEl = document.getElementById('tourney-level');
-    if (levelEl) levelEl.textContent = `Niveau ${level}`;
+    if (levelEl) levelEl.textContent = `${speedInfo.icon} Niv. ${level}`;
 
     const blindsEl = document.getElementById('tourney-blinds');
     if (blindsEl && blinds) {
@@ -155,3 +188,4 @@ class TournamentManager {
 
 window.tournamentManager = new TournamentManager();
 window.TOURNAMENT_CONFIGS = TOURNAMENT_CONFIGS;
+window.TOURNAMENT_SPEEDS = TOURNAMENT_SPEEDS;

@@ -93,8 +93,17 @@ class TableUI {
       color: (cardStr[1] === 'h' || cardStr[1] === 'd') ? 'red' : 'black'
     };
 
-    const isRed = info.color === 'red';
-    const suitClass = isRed ? 'suit-red' : 'suit-black';
+    const fourColor = window.storageManager && window.storageManager.getSettings().fourColorDeck;
+    let suitClass = 'suit-black';
+    const suitChar = cardStr[1];
+    if (fourColor) {
+      if (suitChar === 'h') suitClass = 'suit-red';
+      else if (suitChar === 'd') suitClass = 'suit-blue';
+      else if (suitChar === 'c') suitClass = 'suit-green';
+      else suitClass = 'suit-black';
+    } else {
+      suitClass = (suitChar === 'h' || suitChar === 'd') ? 'suit-red' : 'suit-black';
+    }
 
     // Tailles typographiques adaptées selon le type de carte
     let rankTextSize = 'text-[11px] md:text-sm';

@@ -209,6 +209,12 @@
 .suit-black {
   color: #0f172a;
 }
+.suit-blue {
+  color: #2563eb;
+}
+.suit-green {
+  color: #16a34a;
+}
 
 /* Highlight de la main gagnante */
 .card-winning-glow {

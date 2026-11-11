@@ -39,6 +39,11 @@ class HikaPokerApp {
     this.pendingRebuyAmount = 0;
     this.selectedRebuyAmount = 0;
     this.toastTimeout = null;
+
+    // Gestion de la Vitesse du Tournoi & Revue de Main & Bonus Quotidien
+    this.selectedTourneySpeed = 'normal';
+    this.lastHandSummary = null;
+    this.dailyBonusTimerInterval = null;
   }
 
   init() {
@@ -89,6 +94,18 @@ class HikaPokerApp {
 
     // 7. Vérifier et afficher si un tournoi est en cours
     this.checkAndShowActiveTournament();
+
+    // 8. Initialiser le badge de notification du bonus quotidien et le sélecteur de vitesse
+    this.updateDailyBonusNotificationBadge();
+    this.setTournamentSpeed('normal');
+
+    // 9. Vérifier automatiquement l'éligibilité au Bonus Quotidien au lancement
+    setTimeout(() => {
+      const dailyStatus = window.storageManager.getDailyBonusStatus();
+      if (dailyStatus.canClaim) {
+        this.openDailyBonusModal();
+      }
+    }, 1200);
 
     console.log('[Hika-Poker] Initialisation terminée.');
   }
@@ -181,7 +198,7 @@ class HikaPokerApp {
           window.playerControlsUI.hideRaiseSlider();
           return;
         }
-        ['rebuy-modal', 'stats-modal', 'auth-modal', 'wheel-modal'].forEach((id) => {
+        ['rebuy-modal', 'stats-modal', 'auth-modal', 'wheel-modal', 'daily-bonus-modal', 'hand-replayer-modal'].forEach((id) => {
           const m = document.getElementById(id);
           if (m && !m.classList.contains('hidden')) {
             m.classList.add('hidden');
@@ -289,6 +306,59 @@ class HikaPokerApp {
         this.applyTheme(e.target.value);
         window.storageManager.updateSettings({ theme: e.target.value });
       });
+    }
+
+    // Toggle 4 Couleurs Deck (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)
+    const toggle4C = document.getElementById('toggle-four-color-deck');
+    if (toggle4C) {
+      const currentSettings = window.storageManager.getSettings();
+      toggle4C.checked = !!currentSettings.fourColorDeck;
+      toggle4C.addEventListener('change', (e) => {
+        window.storageManager.updateSettings({ fourColorDeck: e.target.checked });
+        if (this.engine) {
+          const state = this.engine.getState(this.humanId);
+          window.tableUI.renderSeats(state, this.humanId, this.winningCards || []);
+          window.tableUI.renderBoard(state.board || [], this.winningCards || []);
+        }
+        this.showToast(e.target.checked ? "Jeu 4 Couleurs Activé (♠ Noir, ♥ Rouge, ♦ Bleu, ♣ Vert)" : "Jeu Standard 2 Couleurs Activé", "🃏");
+      });
+    }
+
+    // Boutons de Vitesse du Tournoi (Sit & Go Championship)
+    const speedButtons = document.querySelectorAll('.btn-tourney-speed');
+    speedButtons.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const speed = e.currentTarget.dataset.speed;
+        this.setTournamentSpeed(speed);
+      });
+    });
+
+    // Bouton et Modal Revoir la dernière main (Hand Replayer)
+    const btnReplayer = document.getElementById('btn-hand-replayer');
+    if (btnReplayer) {
+      btnReplayer.addEventListener('click', () => this.openHandReplayerModal());
+    }
+    const btnCloseReplayer = document.getElementById('btn-close-hand-replayer');
+    if (btnCloseReplayer) {
+      btnCloseReplayer.addEventListener('click', () => this.closeHandReplayerModal());
+    }
+    const btnCloseReplayerBottom = document.getElementById('btn-replayer-close-bottom');
+    if (btnCloseReplayerBottom) {
+      btnCloseReplayerBottom.addEventListener('click', () => this.closeHandReplayerModal());
+    }
+
+    // Bouton et Modal Daily Login Bonus 7 Jours
+    const btnOpenDaily = document.getElementById('btn-open-daily-bonus');
+    if (btnOpenDaily) {
+      btnOpenDaily.addEventListener('click', () => this.openDailyBonusModal());
+    }
+    const btnCloseDaily = document.getElementById('btn-close-daily-bonus');
+    if (btnCloseDaily) {
+      btnCloseDaily.addEventListener('click', () => this.closeDailyBonusModal());
+    }
+    const btnClaimDaily = document.getElementById('btn-claim-daily-bonus');
+    if (btnClaimDaily) {
+      btnClaimDaily.addEventListener('click', () => this.claimDailyBonus());
     }
 
     // Rebuy / Recharge manuelle
@@ -696,6 +766,8 @@ class HikaPokerApp {
       if (keyInput && window.supabaseClient) keyInput.value = window.supabaseClient.anonKey || '';
     }
 
+    this.populateAvatarPickers();
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
   }
@@ -708,27 +780,76 @@ class HikaPokerApp {
     }
   }
 
-  populateAuthAvatarPicker() {
-    const grid = document.getElementById('auth-avatar-grid');
-    if (!grid || grid.children.length > 0) return;
+  populateAvatarPickers() {
+    const avatars = ['👑', '🤠', '🦁', '🦈', '🕶️', '🎩', '💎', '🦊', '🤖', '🧙', '🐺', '🚀', '🔥', '🐯', '⚡', '🐉'];
+    const currentAvatar = window.storageManager.getProfile().avatar || '👑';
 
-    const avatars = ['👑', '🤠', '🥷', '🦁', '🐯', '🦈', '💎', '🎲', '🃏', '🚀'];
-    const hiddenInput = document.getElementById('auth-register-avatar');
-
-    avatars.forEach((emoji, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${i === 0 ? 'border-amber-400 bg-amber-500/20 scale-105' : 'border-slate-800 hover:border-slate-700'}`;
-      btn.textContent = emoji;
-      btn.addEventListener('click', () => {
-        Array.from(grid.children).forEach((b) => {
-          b.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border border-slate-800 hover:border-slate-700';
-        });
-        btn.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-amber-500/20 border-2 border-amber-400 scale-105';
-        if (hiddenInput) hiddenInput.value = emoji;
+    // 1. Profil connecté
+    const profGrid = document.getElementById('profile-avatar-grid');
+    if (profGrid) {
+      profGrid.innerHTML = '';
+      avatars.forEach((emoji) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = emoji === currentAvatar;
+        btn.className = `h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${isSel ? 'border-amber-400 bg-amber-500/25 scale-110 shadow-lg' : 'border-slate-800 hover:border-slate-600'} cursor-pointer`;
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => this.selectAvatar(emoji));
+        profGrid.appendChild(btn);
       });
-      grid.appendChild(btn);
-    });
+    }
+
+    // 2. Profil invité
+    const guestGrid = document.getElementById('guest-avatar-grid');
+    if (guestGrid) {
+      guestGrid.innerHTML = '';
+      avatars.forEach((emoji) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = emoji === currentAvatar;
+        btn.className = `h-9 w-9 sm:h-10 sm:w-10 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${isSel ? 'border-amber-400 bg-amber-500/25 scale-110 shadow-lg' : 'border-slate-800 hover:border-slate-600'} cursor-pointer`;
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => this.selectAvatar(emoji));
+        guestGrid.appendChild(btn);
+      });
+    }
+
+    // 3. Formulaire d'inscription
+    const regGrid = document.getElementById('auth-avatar-grid');
+    const hiddenRegInput = document.getElementById('auth-register-avatar');
+    if (regGrid && regGrid.children.length === 0) {
+      avatars.forEach((emoji, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border ${i === 0 ? 'border-amber-400 bg-amber-500/20 scale-105' : 'border-slate-800 hover:border-slate-700'} cursor-pointer`;
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => {
+          Array.from(regGrid.children).forEach((b) => {
+            b.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-slate-900 border border-slate-800 hover:border-slate-700 cursor-pointer';
+          });
+          btn.className = 'h-9 rounded-xl text-lg flex items-center justify-center transition-all bg-amber-500/20 border-2 border-amber-400 scale-105 cursor-pointer';
+          if (hiddenRegInput) hiddenRegInput.value = emoji;
+        });
+        regGrid.appendChild(btn);
+      });
+    }
+
+    const prevSel = document.getElementById('auth-selected-avatar-preview');
+    if (prevSel) prevSel.textContent = `Actuel : ${currentAvatar}`;
+    const guestPrevSel = document.getElementById('guest-selected-avatar-preview');
+    if (guestPrevSel) guestPrevSel.textContent = `Actuel : ${currentAvatar}`;
+  }
+
+  selectAvatar(emoji) {
+    window.storageManager.setAvatar(emoji);
+    this.updateUserHeader();
+    if (this.engine) {
+      const hp = this.engine.getPlayer(this.humanId);
+      if (hp) hp.avatar = emoji;
+      window.tableUI.renderSeats(this.engine.getState(this.humanId), this.humanId, this.winningCards || []);
+    }
+    this.populateAvatarPickers();
+    this.showToast(`Avatar sélectionné : ${emoji}`, emoji);
   }
 
   switchAuthTab(tab) {
@@ -893,7 +1014,7 @@ class HikaPokerApp {
       name: profile.name,
       chips: config.buyIn,
       isBot: false,
-      avatar: '👤'
+      avatar: profile.avatar || '👑'
     }, 0);
 
     // Ajouter 5 bots locaux avec personnalités distinctes
@@ -919,7 +1040,12 @@ class HikaPokerApp {
     }, 800);
   }
 
-  startTournamentGame() {
+  startTournamentGame(speedKey = null) {
+    const speed = speedKey || this.selectedTourneySpeed || 'normal';
+    const speedCfg = (window.TOURNAMENT_SPEEDS && window.TOURNAMENT_SPEEDS[speed]) || { startingChips: 3000, handsPerLevel: 4, name: 'Normal', icon: '⚖️' };
+    const startingChips = speedCfg.startingChips;
+    const handsPerLevel = speedCfg.handsPerLevel;
+
     // Vérifier si un tournoi est déjà en cours
     const existing = window.storageManager ? window.storageManager.getActiveTournament() : null;
     if (existing && existing.active) {
@@ -945,14 +1071,14 @@ class HikaPokerApp {
     window.storageManager.addChips(-tourneyCfg.buyIn);
     this.updateUserHeader();
 
-    // Créer le moteur PokerEngine en mode tournoi
+    // Créer le moteur PokerEngine en mode tournoi avec les paramètres de vitesse
     this.engine = new window.PokerEngine({
       maxSeats: 6,
       smallBlind: tourneyCfg.levels[0].smallBlind,
       bigBlind: tourneyCfg.levels[0].bigBlind,
-      startingChips: tourneyCfg.startingChips,
+      startingChips: startingChips,
       blindLevels: tourneyCfg.levels,
-      handsPerLevel: tourneyCfg.handsPerLevel,
+      handsPerLevel: handsPerLevel,
       autoRebuy: false,
       turnTimeMs: 15000
     });
@@ -963,9 +1089,9 @@ class HikaPokerApp {
     this.engine.addPlayer({
       id: this.humanId,
       name: profile.name,
-      chips: tourneyCfg.startingChips,
+      chips: startingChips,
       isBot: false,
-      avatar: '👤'
+      avatar: profile.avatar || '👑'
     }, 0);
 
     // Bots de tournoi
@@ -974,7 +1100,7 @@ class HikaPokerApp {
       this.engine.addPlayer({
         id: b.id,
         name: b.name,
-        chips: tourneyCfg.startingChips,
+        chips: startingChips,
         isBot: true,
         botLevel: b.botLevel,
         avatar: b.avatar,
@@ -982,12 +1108,12 @@ class HikaPokerApp {
       }, idx + 1);
     });
 
-    window.tournamentManager.start({ id: this.humanId, name: profile.name }, bots);
+    window.tournamentManager.start({ id: this.humanId, name: profile.name }, bots, speed);
 
     // Sauvegarder l'état initial du tournoi pour synchronisation cross-device
     this.saveActiveTournamentState();
 
-    this.showTableScreen('Sit & Go Tournoi 6-Max');
+    this.showTableScreen(`Sit & Go ${speedCfg.name} 6-Max`);
 
     setTimeout(() => {
       this.startNextHand();
@@ -1088,8 +1214,14 @@ class HikaPokerApp {
         window.tournamentManager.fromJSON(snap.tournament);
       }
 
+      // Appliquer l'avatar actuel du joueur
+      const prof = window.storageManager.getProfile();
+      const hp = this.engine.getPlayer(this.humanId);
+      if (hp && prof.avatar) hp.avatar = prof.avatar;
+
       // 3. Masquer le lobby et afficher la table de jeu
-      this.showTableScreen('Sit & Go Tournoi 6-Max');
+      const speedName = (snap.tournament && snap.tournament.speed && window.TOURNAMENT_SPEEDS && window.TOURNAMENT_SPEEDS[snap.tournament.speed]) ? window.TOURNAMENT_SPEEDS[snap.tournament.speed].name : 'Tournoi';
+      this.showTableScreen(`Sit & Go ${speedName} 6-Max`);
       this.checkAndShowActiveTournament(); // Masquer la bannière lobby
 
       // 4. Rendu immédiat des sièges, du tapis et du pot
@@ -1782,6 +1914,53 @@ class HikaPokerApp {
     if (this.gameMode === 'tournament') {
       this.saveActiveTournamentState();
     }
+
+    // Enregistrement de la synthèse de la main pour le Hand Replayer
+    try {
+      const allPlayers = (this.engine ? this.engine.seats : []).filter(Boolean).map((p) => {
+        const pRes = result.players ? result.players.find((r) => r.id === p.id) : null;
+        const isWinner = pRes && pRes.won > 0;
+        let showCards = false;
+        let holeCards = [];
+        if (p.id === this.humanId || (result.showdown && !p.folded && p.hole && p.hole.length > 0) || isWinner) {
+          showCards = true;
+          holeCards = (p.hole || []).map((c) => typeof c === 'string' ? c : (window.PokerEngine ? window.PokerEngine.cardToString(c) : c));
+        }
+        return {
+          id: p.id,
+          name: p.name,
+          avatar: p.avatar,
+          isHuman: p.id === this.humanId,
+          folded: !!p.folded,
+          showCards: showCards,
+          hole: holeCards,
+          won: pRes ? pRes.won : 0,
+          handLabel: (pRes && pRes.hand && pRes.hand.label) || (p.folded ? 'Couché' : (isWinner ? 'Vainqueur' : ''))
+        };
+      });
+
+      this.lastHandSummary = {
+        tableName: this.currentTableConfig?.name || (this.gameMode === 'tournament' ? 'Tournoi Sit & Go 6-Max' : 'Table'),
+        gameMode: this.gameMode,
+        board: (this.engine && this.engine.board) ? this.engine.board.map((c) => typeof c === 'string' ? c : (window.PokerEngine ? window.PokerEngine.cardToString(c) : c)) : [],
+        pot: totalPot,
+        winners: winners.map((w) => {
+          const pObj = this.engine ? this.engine.getPlayer(w.id) : null;
+          return {
+            id: w.id,
+            name: pObj ? pObj.name : 'Joueur',
+            avatar: pObj ? pObj.avatar : '👤',
+            won: w.won,
+            handLabel: (w.hand && w.hand.label) || 'Main gagnante'
+          };
+        }),
+        players: allPlayers,
+        winningCards: this.winningCards ? this.winningCards.slice() : [],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+    } catch (err) {
+      console.warn('[Hika-Poker] Erreur snapshot Hand Replayer:', err);
+    }
   }
 
   // =========================================================================
@@ -2116,6 +2295,352 @@ class HikaPokerApp {
       toast.classList.remove('opacity-100', 'translate-y-0');
       toast.classList.add('opacity-0', '-translate-y-20', 'pointer-events-none');
     }, durationMs);
+  }
+
+  // =========================================================================
+  // VITESSE & STRUCTURE DE TOURNOI SIT & GO
+  // =========================================================================
+
+  setTournamentSpeed(speedKey) {
+    const speeds = window.TOURNAMENT_SPEEDS || {};
+    const cfg = speeds[speedKey] || speeds.normal || { name: 'Normal', icon: '⚖️', startingChips: 3000, desc: '4 mains / niveau' };
+    this.selectedTourneySpeed = cfg.key || speedKey;
+
+    document.querySelectorAll('.btn-tourney-speed').forEach((btn) => {
+      const isSelected = btn.dataset.speed === this.selectedTourneySpeed;
+      if (isSelected) {
+        btn.className = 'btn-tourney-speed py-1 rounded-lg text-[10px] font-black bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow transition-all flex items-center justify-center gap-0.5 cursor-pointer';
+      } else {
+        btn.className = 'btn-tourney-speed py-1 rounded-lg text-[10px] font-black text-slate-400 hover:text-white transition-all flex items-center justify-center gap-0.5 cursor-pointer';
+      }
+    });
+
+    const badge = document.getElementById('tourney-speed-badge');
+    if (badge) badge.textContent = `${cfg.icon} ${cfg.name} (${cfg.startingChips.toLocaleString()} 🪙)`;
+
+    const desc = document.getElementById('tourney-speed-desc');
+    if (desc) desc.textContent = `${cfg.desc} • ${cfg.startingChips.toLocaleString()} jetons départ`;
+  }
+
+  // =========================================================================
+  // REVUE DE LA DERNIÈRE MAIN (HAND REPLAYER)
+  // =========================================================================
+
+  openHandReplayerModal() {
+    this.renderHandReplayer();
+    const modal = document.getElementById('hand-replayer-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  }
+
+  closeHandReplayerModal() {
+    const modal = document.getElementById('hand-replayer-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  renderHandReplayer() {
+    const summary = this.lastHandSummary;
+    const titleEl = document.getElementById('replayer-table-name');
+    const timeEl = document.getElementById('replayer-hand-time');
+    const boardEl = document.getElementById('replayer-board-cards');
+    const playersListEl = document.getElementById('replayer-players-list');
+
+    if (!summary) {
+      if (titleEl) titleEl.textContent = "Aucune main précédente enregistrée";
+      if (timeEl) timeEl.textContent = "";
+      if (boardEl) boardEl.innerHTML = '<span class="text-xs text-slate-500 italic py-2">Jouez une première main pour afficher sa revue ici !</span>';
+      if (playersListEl) playersListEl.innerHTML = '<div class="text-center py-6 text-xs text-slate-400">Aucune donnée de main disponible pour le moment.</div>';
+      return;
+    }
+
+    if (titleEl) {
+      titleEl.textContent = `${summary.tableName} • Pot Total : ${summary.pot.toLocaleString()} 🪙`;
+    }
+    if (timeEl) {
+      timeEl.textContent = summary.time || "";
+    }
+
+    if (boardEl) {
+      if (summary.board && summary.board.length > 0) {
+        boardEl.innerHTML = summary.board.map((c) => {
+          const isWinning = summary.winningCards && summary.winningCards.includes(c);
+          return window.tableUI.createCardHTML(c, true, isWinning, 'board');
+        }).join('');
+      } else {
+        boardEl.innerHTML = '<span class="text-xs text-slate-500 italic py-2">La main s\'est terminée pré-flop (Adversaires couchés)</span>';
+      }
+    }
+
+    if (playersListEl) {
+      playersListEl.innerHTML = summary.players.map((p) => {
+        const isWinner = p.won > 0;
+        let cardHTML = '';
+        if (p.showCards && p.hole && p.hole.length === 2) {
+          const c1Win = summary.winningCards && summary.winningCards.includes(p.hole[0]);
+          const c2Win = summary.winningCards && summary.winningCards.includes(p.hole[1]);
+          cardHTML = `
+            <div class="flex gap-1">
+              ${window.tableUI.createCardHTML(p.hole[0], true, c1Win, 'bot')}
+              ${window.tableUI.createCardHTML(p.hole[1], true, c2Win, 'bot')}
+            </div>
+          `;
+        } else if (p.folded) {
+          cardHTML = '<span class="text-[10px] text-slate-500 italic">Fold</span>';
+        } else {
+          cardHTML = '<span class="text-[10px] text-slate-500 italic">Cartes masquées</span>';
+        }
+
+        const borderClass = isWinner ? 'border-amber-400/80 bg-amber-950/40 shadow-amber-950/60' : 'border-slate-800 bg-slate-950/70';
+        const gainBadge = isWinner
+          ? `<span class="px-2 py-0.5 rounded-md bg-emerald-950 border border-emerald-500/40 text-emerald-400 font-black text-xs">+${p.won.toLocaleString()} 🪙</span>`
+          : (p.folded ? `<span class="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-500 text-[10px] font-bold">Couché</span>` : '');
+
+        return `
+          <div class="flex items-center justify-between p-2.5 rounded-xl border ${borderClass} transition-colors">
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-full bg-slate-900 border ${isWinner ? 'border-amber-400' : 'border-slate-700'} flex items-center justify-center text-lg shadow">
+                ${p.avatar || '👤'}
+              </div>
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs font-black ${p.isHuman ? 'text-amber-300' : 'text-white'}">${p.name} ${p.isHuman ? '(Vous)' : ''}</span>
+                  ${isWinner ? '<span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-black uppercase">Vainqueur</span>' : ''}
+                </div>
+                <span class="text-[10px] text-slate-400 block">${p.handLabel || (p.folded ? 'Couché' : 'En jeu')}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              ${cardHTML}
+              ${gainBadge}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // =========================================================================
+  // BONUS QUOTIDIEN DE CONNEXION SUR 7 JOURS
+  // =========================================================================
+
+  openDailyBonusModal() {
+    this.renderDailyBonusModal();
+    const modal = document.getElementById('daily-bonus-modal');
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+    this.startDailyBonusCountdown();
+  }
+
+  closeDailyBonusModal() {
+    if (this.dailyBonusTimerInterval) {
+      clearInterval(this.dailyBonusTimerInterval);
+      this.dailyBonusTimerInterval = null;
+    }
+    const modal = document.getElementById('daily-bonus-modal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  }
+
+  updateDailyBonusNotificationBadge() {
+    const status = window.storageManager.getDailyBonusStatus();
+    const pingEl = document.getElementById('daily-bonus-ping');
+    const dotEl = document.getElementById('daily-bonus-dot');
+    if (pingEl && dotEl) {
+      if (status.canClaim) {
+        pingEl.classList.remove('hidden');
+        dotEl.classList.remove('hidden');
+      } else {
+        pingEl.classList.add('hidden');
+        dotEl.classList.add('hidden');
+      }
+    }
+  }
+
+  renderDailyBonusModal() {
+    const status = window.storageManager.getDailyBonusStatus();
+    const grid = document.getElementById('daily-bonus-days-grid');
+    const streakTag = document.getElementById('daily-bonus-streak-tag');
+    const statusText = document.getElementById('daily-bonus-status-text');
+    const claimBtn = document.getElementById('btn-claim-daily-bonus');
+    const claimBtnLabel = document.getElementById('btn-claim-daily-bonus-label');
+
+    if (streakTag) {
+      streakTag.textContent = `Série en cours : ${status.streak} jour${status.streak > 1 ? 's' : ''}`;
+    }
+
+    if (grid) {
+      grid.innerHTML = status.rewards.map((rew, idx) => {
+        const dayNum = idx + 1;
+        const isDay7 = dayNum === 7;
+        const isCurrentTarget = dayNum === status.dayToClaim;
+
+        let borderClass = 'border-slate-800 bg-slate-950/70 text-slate-400';
+        let badgeIcon = '🔒';
+        let badgeText = 'Verrouillé';
+        let rewardColor = 'text-slate-400';
+
+        if (dayNum <= status.streak) {
+          borderClass = 'border-emerald-500/70 bg-emerald-950/40 text-emerald-300';
+          badgeIcon = '✅';
+          badgeText = 'Reçu';
+          rewardColor = 'text-emerald-400';
+        } else if (isCurrentTarget && status.canClaim) {
+          borderClass = 'border-yellow-400 bg-gradient-to-b from-amber-950/80 to-slate-950 text-yellow-200 ring-2 ring-yellow-400 animate-pulse';
+          badgeIcon = '🎁';
+          badgeText = 'Disponible';
+          rewardColor = 'text-yellow-300 font-black';
+        } else if (isDay7) {
+          borderClass = 'border-purple-500/50 bg-purple-950/30 text-purple-300';
+          badgeIcon = '👑';
+          badgeText = 'Jackpot';
+          rewardColor = 'text-purple-300';
+        }
+
+        return `
+          <div class="flex flex-col items-center p-2 rounded-2xl border ${borderClass} relative transition-all">
+            <span class="text-[9px] font-bold uppercase tracking-wider mb-1">Jour ${dayNum}</span>
+            <div class="w-8 h-8 rounded-full bg-slate-900/90 flex items-center justify-center text-sm shadow mb-1">
+              ${badgeIcon}
+            </div>
+            <span class="text-[10px] font-black ${rewardColor} leading-tight text-center">
+              +${(rew / 1000)}k 🪙
+            </span>
+            <span class="text-[8px] font-semibold opacity-75 mt-0.5">${badgeText}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (claimBtn && claimBtnLabel) {
+      if (status.canClaim) {
+        claimBtn.disabled = false;
+        claimBtn.className = 'w-full py-3.5 rounded-xl font-black text-xs sm:text-sm tracking-wide uppercase bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 hover:from-emerald-500 hover:to-teal-400 text-white shadow-xl shadow-emerald-900/40 transition-transform active:scale-95 flex items-center justify-center gap-2 cursor-pointer';
+        claimBtnLabel.textContent = `RÉCUPÉRER MON CADEAU DU JOUR ${status.dayToClaim} (+${status.reward.toLocaleString()} 🪙)`;
+        if (statusText) statusText.textContent = `Votre cadeau de Jour ${status.dayToClaim} est prêt à être récupéré !`;
+      } else {
+        claimBtn.disabled = true;
+        claimBtn.className = 'w-full py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide uppercase bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed flex items-center justify-center gap-2';
+        claimBtnLabel.textContent = `CADEAU DÉJÀ RÉCUPÉRÉ AUJOURD'HUI`;
+        if (statusText) statusText.textContent = `Vous avez déjà récupéré votre bonus aujourd'hui. Rendez-vous demain !`;
+      }
+    }
+
+    this.updateDailyBonusTimerVisual();
+    this.updateDailyBonusNotificationBadge();
+  }
+
+  startDailyBonusCountdown() {
+    if (this.dailyBonusTimerInterval) clearInterval(this.dailyBonusTimerInterval);
+    this.dailyBonusTimerInterval = setInterval(() => {
+      this.updateDailyBonusTimerVisual();
+    }, 1000);
+  }
+
+  updateDailyBonusTimerVisual() {
+    const timerEl = document.getElementById('daily-bonus-timer-text');
+    if (!timerEl) return;
+    const status = window.storageManager.getDailyBonusStatus();
+    if (status.canClaim) {
+      timerEl.textContent = '⚡ Prêt à être récupéré maintenant !';
+      timerEl.className = 'text-[11px] text-emerald-400 font-bold block';
+    } else {
+      const now = new Date();
+      const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+      const diffSec = Math.max(0, Math.floor((tomorrow - now) / 1000));
+      const h = String(Math.floor(diffSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((diffSec % 3600) / 60)).padStart(2, '0');
+      const s = String(diffSec % 60).padStart(2, '0');
+      timerEl.textContent = `⏳ Prochain bonus disponible dans : ${h}h ${m}m ${s}s`;
+      timerEl.className = 'text-[11px] text-amber-300 font-mono block';
+    }
+  }
+
+  claimDailyBonus() {
+    const res = window.storageManager.claimDailyBonus();
+    if (!res.success) {
+      this.showToast("Vous avez déjà récupéré votre bonus aujourd'hui !", "⚠️");
+      return;
+    }
+
+    if (window.soundFX) {
+      window.soundFX.playWin();
+      window.soundFX.playApplause();
+    }
+    this.launchConfetti();
+    this.updateUserHeader();
+    this.showToast(`🎉 Jour ${res.streak} validé ! +${res.reward.toLocaleString()} 🪙 ajoutés !`, "🎁");
+    this.renderDailyBonusModal();
+    this.updateDailyBonusNotificationBadge();
+  }
+
+  launchConfetti() {
+    if (window.luckyWheel && typeof window.luckyWheel.launchConfetti === 'function') {
+      window.luckyWheel.launchConfetti();
+      return;
+    }
+
+    const canvas = document.getElementById('confetti-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#eab308', '#ffffff'];
+    const particles = [];
+    for (let i = 0; i < 100; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() * 200 - 100),
+        y: canvas.height / 2 + (Math.random() * 100 - 50),
+        vx: (Math.random() - 0.5) * 12,
+        vy: -Math.random() * 12 - 4,
+        size: Math.random() * 7 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        opacity: 1
+      });
+    }
+
+    let frame = 0;
+    const render = () => {
+      frame++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.25; // gravité
+        p.rotation += p.rotSpeed;
+        p.opacity -= 0.008;
+
+        if (p.opacity > 0) {
+          alive = true;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        }
+      });
+
+      if (alive && frame < 180) {
+        requestAnimationFrame(render);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    render();
   }
 
   stopAllTimers() {

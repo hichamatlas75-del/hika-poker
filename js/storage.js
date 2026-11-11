@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   STATS: 'hika_poker_stats',
   SETTINGS: 'hika_poker_settings',
   WHEEL: 'hika_poker_wheel',
+  DAILY_BONUS: 'hika_poker_daily_bonus',
   HAND_HISTORY: 'hika_poker_hand_history',
   AUTH_MODE: 'hika_poker_auth_mode', // 'cloud' | 'guest'
   ACTIVE_TOURNAMENT: 'hika_poker_active_tourney'
@@ -35,6 +36,7 @@ const DEFAULT_STATS = {
 
 const DEFAULT_SETTINGS = {
   soundEnabled: true,
+  fourColorDeck: false,
   theme: 'green', // 'green' | 'blue' | 'red'
   animationSpeed: 'normal',
   autoCheck: false
@@ -320,6 +322,106 @@ class StorageManager {
     const now = Date.now();
     this.save(STORAGE_KEYS.WHEEL, { lastSpin: now });
     this.queueCloudSync({ wheel_last_spin: new Date(now).toISOString() });
+  }
+
+  // =========================================================================
+  // BONUS QUOTIDIEN DE CONNEXION (7 JOURS)
+  // =========================================================================
+
+  getDailyBonusStatus() {
+    const rewards = [2500, 5000, 10000, 15000, 25000, 35000, 50000];
+    const data = this.load(STORAGE_KEYS.DAILY_BONUS, { lastClaimDate: null, streak: 0 });
+
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    const tomorrow = new Date(y, now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const msUntilTomorrow = Math.max(0, tomorrow.getTime() - now.getTime());
+    const hoursUntilNext = Math.floor(msUntilTomorrow / (1000 * 60 * 60));
+    const minutesUntilNext = Math.floor((msUntilTomorrow % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (!data.lastClaimDate) {
+      return {
+        canClaim: true,
+        claimedToday: false,
+        streak: 0,
+        dayToClaim: 1,
+        reward: rewards[0],
+        rewards,
+        hoursUntilNext,
+        minutesUntilNext
+      };
+    }
+
+    if (data.lastClaimDate === todayStr) {
+      const currentStreak = Math.max(1, Math.min(7, data.streak || 1));
+      const nextDay = (currentStreak % 7) + 1;
+      return {
+        canClaim: false,
+        claimedToday: true,
+        streak: currentStreak,
+        dayToClaim: nextDay,
+        reward: rewards[nextDay - 1],
+        rewards,
+        hoursUntilNext,
+        minutesUntilNext
+      };
+    }
+
+    const lastDate = new Date(data.lastClaimDate + 'T00:00:00');
+    const todayDate = new Date(todayStr + 'T00:00:00');
+    const diffDays = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+
+    let nextStreak = 1;
+    if (diffDays === 1) {
+      nextStreak = ((data.streak || 0) % 7) + 1;
+    } else {
+      nextStreak = 1;
+    }
+
+    return {
+      canClaim: true,
+      claimedToday: false,
+      streak: (diffDays === 1 ? (data.streak || 0) : 0),
+      dayToClaim: nextStreak,
+      reward: rewards[nextStreak - 1],
+      rewards,
+      hoursUntilNext,
+      minutesUntilNext
+    };
+  }
+
+  claimDailyBonus() {
+    const status = this.getDailyBonusStatus();
+    if (!status.canClaim) {
+      return { success: false, reason: 'already_claimed' };
+    }
+
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    const newStreak = status.dayToClaim;
+    const reward = status.reward;
+
+    this.save(STORAGE_KEYS.DAILY_BONUS, {
+      lastClaimDate: todayStr,
+      streak: newStreak
+    });
+
+    this.addChips(reward);
+
+    return {
+      success: true,
+      reward,
+      streak: newStreak,
+      chips: this.profile.chips
+    };
   }
 
   // =========================================================================
