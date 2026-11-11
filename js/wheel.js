@@ -41,18 +41,7 @@ class LuckyWheel {
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
 
-    // Adapter la résolution retina
-    const dpr = window.devicePixelRatio || 1;
-    const rect = this.canvas.getBoundingClientRect();
-    const size = Math.min(360, window.innerWidth - 60);
-    this.canvas.width = size * dpr;
-    this.canvas.height = size * dpr;
-    this.canvas.style.width = size + 'px';
-    this.canvas.style.height = size + 'px';
-    this.ctx.scale(dpr, dpr);
-    this.size = size;
-
-    this.draw();
+    this.resizeCanvas();
 
     // Boutons
     const spinBtn = document.getElementById('wheel-spin-btn');
@@ -65,7 +54,27 @@ class LuckyWheel {
       closeBtn.addEventListener('click', () => this.close());
     }
 
+    window.addEventListener('resize', () => {
+      if (this.modal && !this.modal.classList.contains('hidden') && !this.isSpinning) {
+        this.resizeCanvas();
+      }
+    });
+
     this.updateStatus();
+  }
+
+  resizeCanvas() {
+    if (!this.canvas || !this.ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    const size = Math.min(360, Math.max(260, window.innerWidth - 60));
+    this.canvas.width = size * dpr;
+    this.canvas.height = size * dpr;
+    this.canvas.style.width = size + 'px';
+    this.canvas.style.height = size + 'px';
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.ctx.scale(dpr, dpr);
+    this.size = size;
+    this.draw();
   }
 
   open() {
@@ -73,13 +82,19 @@ class LuckyWheel {
     if (this.modal) {
       this.modal.classList.remove('hidden');
       this.modal.classList.add('flex');
+      this.resizeCanvas();
       this.updateStatus();
-      this.draw();
+      if (this.statusInterval) clearInterval(this.statusInterval);
+      this.statusInterval = setInterval(() => this.updateStatus(), 1000);
     }
   }
 
   close() {
     if (this.isSpinning) return;
+    if (this.statusInterval) {
+      clearInterval(this.statusInterval);
+      this.statusInterval = null;
+    }
     if (this.modal) {
       this.modal.classList.add('hidden');
       this.modal.classList.remove('flex');
@@ -89,6 +104,7 @@ class LuckyWheel {
   updateStatus() {
     const statusEl = document.getElementById('wheel-timer-status');
     const spinBtn = document.getElementById('wheel-spin-btn');
+    const headerWheelBtn = document.getElementById('btn-open-lucky-wheel');
     if (!statusEl || !spinBtn) return;
 
     const { canSpin, timeLeft } = window.storageManager.getWheelState();
@@ -97,6 +113,10 @@ class LuckyWheel {
       spinBtn.disabled = false;
       spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
       spinBtn.classList.add('animate-pulse');
+      if (headerWheelBtn) {
+        headerWheelBtn.classList.add('animate-pulse');
+        headerWheelBtn.title = 'Roue de la fortune — Tour gratuit disponible !';
+      }
     } else {
       const mins = Math.floor(timeLeft / 60000);
       const secs = Math.floor((timeLeft % 60000) / 1000);
@@ -104,6 +124,10 @@ class LuckyWheel {
       spinBtn.disabled = true;
       spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
       spinBtn.classList.remove('animate-pulse');
+      if (headerWheelBtn) {
+        headerWheelBtn.classList.remove('animate-pulse');
+        headerWheelBtn.title = `Roue de la fortune — Disponible dans ${mins} min`;
+      }
     }
   }
 

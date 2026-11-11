@@ -170,13 +170,79 @@ class HikaPokerApp {
       });
     }
 
-    // Raccourci clavier 'P' pour mettre en pause la table
+    // Raccourcis clavier complets Casino : P (Pause), F (Fold), Espace/C (Check/Call), R (Raise), A (All-in), Echap (Fermer)
     document.addEventListener('keydown', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+
+      // Echap : Ferme les tiroirs ou fenêtres modales ouvertes
+      if (e.key === 'Escape') {
+        const slider = document.getElementById('raise-slider-container');
+        if (slider && !slider.classList.contains('hidden')) {
+          window.playerControlsUI.hideRaiseSlider();
+          return;
+        }
+        ['rebuy-modal', 'stats-modal', 'auth-modal', 'wheel-modal'].forEach((id) => {
+          const m = document.getElementById(id);
+          if (m && !m.classList.contains('hidden')) {
+            m.classList.add('hidden');
+            m.classList.remove('flex');
+          }
+        });
+        return;
+      }
+
+      // 'P' : Mettre en pause ou reprendre
       if (e.key === 'p' || e.key === 'P') {
         const tableView = document.getElementById('table-view');
         if (tableView && !tableView.classList.contains('hidden') && this.engine) {
-          if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
           this.togglePause();
+          return;
+        }
+      }
+
+      // Raccourcis d'action de jeu au tour du joueur humain
+      if (!this.engine || this.isPaused) return;
+      const curSeat = this.engine.seats[this.engine.currentSeat];
+      if (!curSeat || curSeat.id !== this.humanId) return;
+
+      const legal = this.engine.getLegalActions(this.humanId);
+      if (!legal) return;
+
+      const key = e.key.toLowerCase();
+      if (key === 'f') {
+        // Fold
+        e.preventDefault();
+        if (window.soundFX) window.soundFX.playFold();
+        this.handlePlayerAction({ type: 'fold' });
+      } else if (key === 'c' || e.code === 'Space') {
+        // Check ou Call
+        e.preventDefault();
+        if (legal.canCheck) {
+          if (window.soundFX) window.soundFX.playCheck();
+          this.handlePlayerAction({ type: 'check' });
+        } else if (legal.canCall) {
+          if (window.soundFX) window.soundFX.playChip();
+          this.handlePlayerAction({ type: 'call' });
+        }
+      } else if (key === 'r') {
+        // Raise / Miser
+        e.preventDefault();
+        const slider = document.getElementById('raise-slider-container');
+        if (slider && !slider.classList.contains('hidden')) {
+          const val = parseInt(document.getElementById('raise-range-slider')?.value, 10);
+          if (window.soundFX) window.soundFX.playChip();
+          const isBet = legal.canBet;
+          this.handlePlayerAction({ type: isBet ? 'bet' : 'raise', amount: val });
+          window.playerControlsUI.hideRaiseSlider();
+        } else if (legal.canRaise) {
+          window.playerControlsUI.toggleRaiseSlider();
+        }
+      } else if (key === 'a') {
+        // All-in
+        e.preventDefault();
+        if (legal.canAllIn) {
+          if (window.soundFX) window.soundFX.playAllIn();
+          this.handlePlayerAction({ type: 'allin' });
         }
       }
     });
@@ -1409,8 +1475,10 @@ class HikaPokerApp {
 
     // Action d'un joueur (fold, check, call, raise, allin)
     this.engine.on('action', (e) => {
+      const actType = e.type || e.action;
+
       // Animation jetons volants depuis le siège du joueur vers le pot central
-      if (['bet', 'raise', 'call', 'allin'].includes(e.action)) {
+      if (['bet', 'raise', 'call', 'allin'].includes(actType)) {
         const seatEl = window.tableUI.getSeatElement(e.playerId);
         if (seatEl && window.tableUI.potEl) {
           window.tableUI.flyChips(seatEl, window.tableUI.potEl);
@@ -1418,7 +1486,7 @@ class HikaPokerApp {
       }
 
       // Son dramatique All-In quand un adversaire fait tapis
-      if (e.action === 'allin' && e.playerId !== this.humanId && window.soundFX) {
+      if (actType === 'allin' && e.playerId !== this.humanId && window.soundFX) {
         window.soundFX.playAllIn();
       }
 
@@ -1699,7 +1767,8 @@ class HikaPokerApp {
         window.storageManager.recordHand({
           won: true,
           pot: humanResult.won,
-          handLabel: (humanResult.hand && humanResult.hand.label) || 'Main gagnante'
+          handLabel: (humanResult.hand && humanResult.hand.label) || 'Main gagnante',
+          handScore: (humanResult.hand && humanResult.hand.score) || 0
         });
       } else if (!humanResult.folded) {
         window.storageManager.recordHand({
@@ -1961,6 +2030,14 @@ class HikaPokerApp {
     if (modal) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+    }
+    // Si le joueur est à une table de cash game sans jeton et n'a pas programmé de recharge
+    if (this.engine && this.gameMode === 'cash' && this.pendingRebuyAmount <= 0) {
+      const p = this.engine.getPlayer(this.humanId);
+      if (p && (p.chips === 0 || p.busted)) {
+        this.showToast("Plus de jetons sur la table. Retour au Lobby.", "ℹ️");
+        this.leaveTable();
+      }
     }
   }
 

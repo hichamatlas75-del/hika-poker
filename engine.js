@@ -193,6 +193,7 @@
 
   /** Libellé de main partielle (2 à 4 cartes : paire, brelan...) ou complète (5+). */
   function describeHand(cards) {
+    if (!cards || !cards.length) return { score: 0, cards: [], category: 0, key: 'high-card', label: '', ranks: [0, 0, 0, 0, 0], royal: false };
     if (cards.length >= 5) return evaluateBest(cards);
     const counts = {};
     cards.forEach((c) => { const r = rankOf(c); counts[r] = (counts[r] || 0) + 1; });
@@ -826,7 +827,7 @@
         players: all.map((p) => ({
           id: p.id, folded: p.folded,
           hole: p.revealed ? p.hole.map(cardToString) : null,
-          hand: evals[p.id] ? { label: evals[p.id].label, key: evals[p.id].key, cards: evals[p.id].cards.map(cardToString), royal: evals[p.id].royal } : null,
+          hand: evals[p.id] ? { label: evals[p.id].label, key: evals[p.id].key, score: evals[p.id].score, category: evals[p.id].category, cards: evals[p.id].cards.map(cardToString), royal: evals[p.id].royal } : null,
           won: winnings[p.id] || 0, net: (winnings[p.id] || 0) - p.totalBet
         }))
       };

@@ -47,6 +47,7 @@ class TournamentManager {
     // Si le joueur humain est éliminé
     if (playerId === 'player_user') {
       this.onHumanEliminated(remaining);
+      return;
     } else if (window.app && typeof window.app.saveActiveTournamentState === 'function') {
       window.app.saveActiveTournamentState();
     }
@@ -66,16 +67,22 @@ class TournamentManager {
 
     const modal = document.getElementById('tournament-result-modal');
     if (modal) {
-      document.getElementById('tournament-result-title').textContent = rank <= 2 ? 'FÉLICITATIONS !' : 'ÉLIMINÉ';
-      document.getElementById('tournament-result-rank').textContent = `${rank}e Place`;
+      const isPodium = rank <= 2;
+      document.getElementById('tournament-result-title').textContent = rank === 2 ? '🥈 PODIUM ! 🥈' : 'ÉLIMINÉ';
+      document.getElementById('tournament-result-rank').textContent = `${rank === 1 ? '1ère' : rank + 'ème'} Place`;
       document.getElementById('tournament-result-prize').textContent = prize > 0 ? `+${prize.toLocaleString()} jetons` : 'Aucun gain';
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+
+      if (isPodium && window.soundFX) {
+        window.soundFX.playWin();
+      }
     }
     this.active = false;
   }
 
   onTournamentEnd() {
+    if (!this.active) return;
     const modal = document.getElementById('tournament-result-modal');
     if (modal) {
       const isWinner = !this.eliminated.some((e) => e.id === 'player_user');
@@ -88,7 +95,7 @@ class TournamentManager {
       }
 
       document.getElementById('tournament-result-title').textContent = isWinner ? '🏆 CHAMPION DU TOURNOI ! 🏆' : 'TOURNOI TERMINÉ';
-      document.getElementById('tournament-result-rank').textContent = `${rank}ère Place`;
+      document.getElementById('tournament-result-rank').textContent = `${rank === 1 ? '1ère' : rank + 'ème'} Place`;
       document.getElementById('tournament-result-prize').textContent = prize > 0 ? `+${prize.toLocaleString()} jetons` : 'Gain déjà crédité';
       modal.classList.remove('hidden');
       modal.classList.add('flex');

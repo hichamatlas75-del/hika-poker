@@ -107,6 +107,26 @@ class TableUI {
       centerSuitSize = 'text-lg sm:text-2xl md:text-3xl';
     }
 
+    if (cardType === 'bot') {
+      return `
+        <div class="poker-card ${cardClass} ${isWinning ? 'card-winning-glow' : ''}" data-card="${cardStr}">
+          <div class="card-inner ${isFlipped ? 'flipped' : ''}">
+            <div class="card-back"></div>
+            <div class="card-front ${suitClass} !p-0.5 justify-between">
+              <div class="flex flex-col items-center leading-none text-left self-start">
+                <span class="${rankTextSize} font-black leading-none">${info.rankChar}</span>
+                <span class="${rankTextSize} -mt-0.5 leading-none">${info.symbol}</span>
+              </div>
+              <div class="flex flex-col items-center leading-none text-right self-end transform rotate-180">
+                <span class="${rankTextSize} font-black leading-none">${info.rankChar}</span>
+                <span class="${rankTextSize} -mt-0.5 leading-none">${info.symbol}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="poker-card ${cardClass} ${isWinning ? 'card-winning-glow' : ''}" data-card="${cardStr}">
         <div class="card-inner ${isFlipped ? 'flipped' : ''}">
@@ -340,7 +360,7 @@ class TableUI {
 
         // Layout Joueur Humain (Hero Pod compact côte-à-côte pour zéro collision)
         seatDiv.innerHTML = `
-          <div class="hero-seat-pod flex items-center gap-1.5 sm:gap-2.5 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-2xl border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-amber-500/40'} shadow-2xl relative ${isFolded ? 'opacity-40 grayscale' : ''}">
+          <div class="hero-seat-pod flex items-center gap-1.5 sm:gap-2.5 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-2xl border-2 ${isCurrentTurn ? 'border-yellow-400 turn-glow-active' : 'border-amber-500/40'} shadow-2xl relative ${isFolded ? 'opacity-40 grayscale' : ''}">
             <!-- Avatar & Infos Joueur -->
             <div class="flex flex-col items-center">
               <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 p-0.5 shadow-md flex items-center justify-center">
@@ -388,7 +408,7 @@ class TableUI {
             ` : ''}
 
             <!-- Avatar & Timer -->
-            <div class="relative w-9 h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 rounded-full bg-gradient-to-br ${avatarBg} p-0.5 shadow-xl flex items-center justify-center border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-slate-700'}">
+            <div class="relative w-9 h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 rounded-full bg-gradient-to-br ${avatarBg} p-0.5 shadow-xl flex items-center justify-center border-2 ${isCurrentTurn ? 'border-yellow-400 turn-glow-active' : 'border-slate-700'}">
               <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
                 <svg class="timer-svg" viewBox="0 0 100 100">
                   <circle class="timer-track" cx="50" cy="50" r="46"></circle>

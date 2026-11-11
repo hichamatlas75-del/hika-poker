@@ -3,15 +3,24 @@
    Direction artistique luxueuse : Tapis de feutre, cuir, bois verni et reflets dorés
    ========================================================================== */
 
-/* Thèmes de feutre de la table */
+/* Thèmes de feutre de la table (Velours haute définition style Casino Bellagio) */
 .felt-green {
-  background: radial-gradient(circle at 50% 50%, #166534 0%, #14532d 45%, #052e16 85%, #022010 100%);
+  background: 
+    radial-gradient(circle at 50% 45%, rgba(34, 197, 94, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, #166534 0%, #14532d 40%, #052e16 80%, #022010 100%);
+  background-color: #052e16;
 }
 .felt-blue {
-  background: radial-gradient(circle at 50% 50%, #1e3a8a 0%, #172554 45%, #0b132b 85%, #040817 100%);
+  background: 
+    radial-gradient(circle at 50% 45%, rgba(96, 165, 250, 0.2) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, #1e3a8a 0%, #172554 40%, #0b132b 80%, #040817 100%);
+  background-color: #0b132b;
 }
 .felt-red {
-  background: radial-gradient(circle at 50% 50%, #881337 0%, #4c0519 45%, #2a030d 85%, #150106 100%);
+  background: 
+    radial-gradient(circle at 50% 45%, rgba(244, 63, 94, 0.2) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, #881337 0%, #4c0519 40%, #2a030d 80%, #150106 100%);
+  background-color: #2a030d;
 }
 
 /* Bordure en cuir et bois verni avec reflets dorés */
@@ -372,17 +381,41 @@
    ========================================================================== */
 .btn-zynga {
   position: relative;
-  border-radius: 10px;
+  border-radius: 12px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4), 0 6px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.45), 0 6px 14px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.btn-zynga::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 44%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border-radius: 11px 11px 0 0;
+  pointer-events: none;
 }
 
 .btn-zynga:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Aura lumineuse autour du joueur dont c'est le tour */
+.turn-glow-active {
+  box-shadow: 0 0 0 2.5px #facc15, 0 0 18px 4px rgba(250, 204, 21, 0.7), 0 10px 25px rgba(0, 0, 0, 0.8) !important;
+  animation: turnPulseAura 1.5s infinite alternate ease-in-out !important;
+}
+
+@keyframes turnPulseAura {
+  0% { box-shadow: 0 0 0 2px #facc15, 0 0 12px 2px rgba(250, 204, 21, 0.5), 0 8px 20px rgba(0, 0, 0, 0.7); }
+  100% { box-shadow: 0 0 0 3.5px #fef08a, 0 0 24px 6px rgba(250, 204, 21, 0.95), 0 12px 28px rgba(0, 0, 0, 0.9); }
 }
 
 .btn-zynga-fold {

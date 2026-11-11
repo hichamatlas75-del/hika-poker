@@ -27,6 +27,7 @@ const DEFAULT_STATS = {
   handsWon: 0,
   biggestPot: 0,
   bestHand: 'Aucune',
+  bestHandScore: 0,
   tournamentsPlayed: 0,
   tournamentsWon: 0,
   totalWon: 0
@@ -140,7 +141,7 @@ class StorageManager {
     return Object.assign({}, this.stats);
   }
 
-  recordHand({ won, pot, handLabel }) {
+  recordHand({ won, pot, handLabel, handScore }) {
     this.stats.handsPlayed++;
     if (won) {
       this.stats.handsWon++;
@@ -148,8 +149,13 @@ class StorageManager {
         this.stats.biggestPot = pot;
       }
     }
-    if (handLabel && (!this.stats.bestHand || this.stats.bestHand === 'Aucune')) {
-      this.stats.bestHand = handLabel;
+    if (handLabel && won) {
+      const score = Number(handScore || 0);
+      const currentBestScore = Number(this.stats.bestHandScore || 0);
+      if (!this.stats.bestHand || this.stats.bestHand === 'Aucune' || score > currentBestScore) {
+        this.stats.bestHand = handLabel;
+        this.stats.bestHandScore = score;
+      }
     }
     this.save(STORAGE_KEYS.STATS, this.stats);
 
