@@ -220,8 +220,9 @@
    ========================================================================== */
 .timer-container {
   position: absolute;
-  inset: -6px;
+  inset: -10px;
   pointer-events: none;
+  z-index: 20;
 }
 
 .timer-svg {
@@ -232,14 +233,14 @@
 
 .timer-track {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 4;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 3.5;
 }
 
 .timer-bar {
   fill: none;
   stroke: #10b981;
-  stroke-width: 4.5;
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-dasharray: 289;
   stroke-dashoffset: 0;
@@ -254,6 +255,76 @@
 @keyframes timerBlink {
   0% { opacity: 1; filter: drop-shadow(0 0 8px #ef4444); }
   100% { opacity: 0.4; filter: drop-shadow(0 0 2px #ef4444); }
+}
+
+/* ==========================================================================
+   CERCLE DE PRÉDICTION DE CHANCE DE GAGNER (STYLE ZYNGA POKER)
+   ========================================================================== */
+.win-chance-container {
+  position: absolute;
+  inset: -5px;
+  pointer-events: none;
+  border-radius: 9999px;
+  z-index: 15;
+  transition: opacity 0.3s ease;
+}
+
+.win-chance-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.win-chance-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 4.5;
+}
+
+.win-chance-bar {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-dasharray: 289;
+  stroke-dashoffset: 289;
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease, filter 0.3s ease;
+}
+
+.win-chance-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 9999px;
+  border-width: 1px;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  pointer-events: auto;
+  animation: winChancePop 0.3s ease-out;
+  cursor: help;
+}
+
+@keyframes winChancePop {
+  0% { transform: translateX(-50%) scale(0.7); opacity: 0; }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* Pulsation douce quand la cote est critique (cercle rouge) */
+.win-chance-red-pulse {
+  animation: winChanceRedPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes winChanceRedPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.85)); }
+  50% { filter: drop-shadow(0 0 14px rgba(239, 68, 68, 1)); }
 }
 
 /* ==========================================================================

@@ -1031,6 +1031,7 @@ class HikaPokerApp {
       window.tableUI.renderSeats(state, this.humanId);
       window.tableUI.renderBoard(state.board || [], []);
       window.tableUI.renderPot(state.pot || 0);
+      this.updateHeroWinChance();
 
       if (window.tournamentManager) {
         window.tournamentManager.updateHUD(snap.level || snap.tournament?.currentLevel || 1, snap.blinds);
@@ -1084,6 +1085,45 @@ class HikaPokerApp {
     }
   }
 
+  // Calcul et affichage de la prédiction de chance de remporter le pot (Style Zynga Poker)
+  updateHeroWinChance() {
+    if (!this.engine || !this.humanId) {
+      if (window.tableUI) window.tableUI.clearHeroWinChance();
+      return;
+    }
+
+    const p = this.engine.getPlayer(this.humanId);
+    if (!p || p.folded || p.busted || !p.inHand || !p.hole || p.hole.length < 2) {
+      if (window.tableUI) window.tableUI.clearHeroWinChance();
+      return;
+    }
+
+    // Nombre d'adversaires encore actifs dans le coup (non couchés)
+    const activeOpponents = this.engine.seats.filter(
+      (s) => s && s.id !== this.humanId && s.inHand && !s.folded && !s.busted
+    ).length;
+
+    if (activeOpponents <= 0) {
+      if (window.tableUI) window.tableUI.renderHeroWinChance(100, 0, false);
+      return;
+    }
+
+    const board = (this.engine.board || []).slice();
+    const hole = p.hole.slice();
+
+    try {
+      if (window.PokerEngine && typeof window.PokerEngine.equity === 'function') {
+        const equity = window.PokerEngine.equity(hole, board, activeOpponents, 250);
+        const winPct = Math.round(equity * 100);
+        if (window.tableUI) {
+          window.tableUI.renderHeroWinChance(winPct, activeOpponents, false);
+        }
+      }
+    } catch (err) {
+      console.warn('[App] Erreur calcul equity hero:', err);
+    }
+  }
+
   showTableScreen(tableName) {
     this.isPaused = false;
     this.botStepRemaining = 0;
@@ -1102,6 +1142,11 @@ class HikaPokerApp {
     this.botStepRemaining = 0;
     this.nextHandRemaining = 0;
     this.updatePauseUI(false);
+
+    // Effacer le cercle de probabilités de victoire
+    if (window.tableUI) {
+      window.tableUI.clearHeroWinChance();
+    }
 
     // Si tournoi en cours, sauvegarder son état pour reprise ultérieure (sur mobile ou PC)
     if (this.gameMode === 'tournament' && window.tournamentManager && window.tournamentManager.active) {
@@ -1350,6 +1395,7 @@ class HikaPokerApp {
         if (handInfoEl && state.myHand) {
           handInfoEl.textContent = state.myHand;
         }
+        this.updateHeroWinChance();
       }
     });
 
@@ -1379,6 +1425,7 @@ class HikaPokerApp {
       const state = this.engine.getState(this.humanId);
       window.tableUI.renderSeats(state, this.humanId, this.winningCards);
       window.tableUI.renderPot(state.pot, state.pots);
+      this.updateHeroWinChance();
     });
 
     // Changement de tour
@@ -1403,6 +1450,7 @@ class HikaPokerApp {
       if (handInfoEl && state.myHand) {
         handInfoEl.textContent = state.myHand;
       }
+      this.updateHeroWinChance();
     });
 
     // All-in runout : déclenchement du suspense dramatique
@@ -1474,6 +1522,7 @@ class HikaPokerApp {
     this.engine.on('handEnd', (result) => {
       window.tableUI.stopTurnTimer();
       window.playerControlsUI.hideAll();
+      if (window.tableUI) window.tableUI.clearHeroWinChance();
 
       if (this.isRunoutPending) {
         this.runoutHandEnd = result;
@@ -1730,12 +1779,20 @@ class HikaPokerApp {
     if (!this.engine || this.isPaused) return;
     window.tableUI.stopTurnTimer();
 
+    if (action.type === 'fold') {
+      if (window.tableUI) window.tableUI.clearHeroWinChance();
+    }
+
     const res = this.engine.act(this.humanId, action);
     if (!res.ok) {
       console.warn('Action refusée par le moteur:', res);
       // Réactualiser l'état légal
       const legal = this.engine.getLegalActions(this.humanId);
       window.playerControlsUI.updateState(legal, true, this.engine.blinds.bigBlind);
+    } else {
+      if (action.type !== 'fold') {
+        this.updateHeroWinChance();
+      }
     }
   }
 
@@ -1743,6 +1800,7 @@ class HikaPokerApp {
     if (!this.engine || this.isPaused) return;
     this.stopAllTimers();
     this.requestWakeLock();
+    if (window.tableUI) window.tableUI.clearHeroWinChance();
 
     // Vérifier si le joueur humain a encore des jetons
     const humanP = this.engine.getPlayer(this.humanId);

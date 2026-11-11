@@ -456,10 +456,13 @@
          ========================================================================= -->
     <div id="action-bar-container" class="w-full max-w-3xl mx-auto z-30 flex flex-col items-center relative">
       
-      <!-- Combinaison Actuelle du Joueur -->
-      <div id="my-hand-badge-container" class="mb-1 sm:mb-1.5 px-3 py-0.5 rounded-full bg-slate-900/90 border border-amber-500/30 text-center shadow-lg">
-        <span class="text-[10px] sm:text-[11px] font-bold text-slate-300">Votre main : </span>
-        <span class="text-[11px] sm:text-xs font-black text-amber-300" id="my-hand-rank-text">En attente de la main...</span>
+      <!-- Combinaison Actuelle du Joueur & Prédiction de Chances Zynga Poker -->
+      <div id="my-hand-badge-container" class="mb-1 sm:mb-1.5 px-3 py-1 rounded-full bg-slate-900/90 border border-amber-500/30 text-center shadow-lg flex items-center justify-center gap-2">
+        <div class="flex items-center gap-1">
+          <span class="text-[10px] sm:text-[11px] font-bold text-slate-300">Votre main : </span>
+          <span class="text-[11px] sm:text-xs font-black text-amber-300" id="my-hand-rank-text">En attente de la main...</span>
+        </div>
+        <div id="my-hand-equity-pill" class="hidden px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black border flex items-center gap-1 shadow-md transition-all"></div>
       </div>
 
       <!-- Curseur de Relance Drawer (Raise Slider flottant sans casser le flux) -->

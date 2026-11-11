@@ -20,6 +20,48 @@ class TableUI {
       { id: 4, posClass: 'seat-top-right' },
       { id: 5, posClass: 'seat-bottom-right' }
     ];
+    this.heroWinChance = null;
+  }
+
+  // Calcul du style visuel de l'anneau de chances Zynga Poker (couleur, glow, label)
+  getWinChanceStyle(pct) {
+    const p = Math.max(1, Math.min(100, Math.round(pct)));
+    const circumference = 289.02; // 2 * pi * 46
+    const offset = Math.max(0, circumference - (p / 100) * circumference);
+
+    let color = '#ef4444'; // Rouge vif (Faible / Risqué < 30% - style Zynga)
+    let glow = 'drop-shadow(0 0 8px rgba(239, 68, 68, 0.95))';
+    let badgeClass = 'bg-red-950/95 border-red-500/80 text-red-300 shadow-red-950/90 win-chance-red-pulse';
+    let label = 'Risqué';
+    let emoji = '🔴';
+
+    if (p >= 85) {
+      color = '#06b6d4'; // Cyan Électrique / Or Divin (Max >= 85%)
+      glow = 'drop-shadow(0 0 10px rgba(6, 182, 212, 1))';
+      badgeClass = 'bg-cyan-950/95 border-cyan-400 text-cyan-200 shadow-cyan-950/90 animate-pulse';
+      label = 'Max';
+      emoji = '💎';
+    } else if (p >= 70) {
+      color = '#10b981'; // Vert Émeraude (Très Fort 70-84%)
+      glow = 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.95))';
+      badgeClass = 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-950/90';
+      label = 'Très Fort';
+      emoji = '🟢';
+    } else if (p >= 50) {
+      color = '#eab308'; // Jaune / Or (Favori 50-69%)
+      glow = 'drop-shadow(0 0 8px rgba(234, 179, 8, 0.9))';
+      badgeClass = 'bg-yellow-950/95 border-yellow-500/80 text-yellow-300 shadow-yellow-950/90';
+      label = 'Favori';
+      emoji = '🟡';
+    } else if (p >= 30) {
+      color = '#f97316'; // Orange vif (Tirage / Moyen 30-49%)
+      glow = 'drop-shadow(0 0 7px rgba(249, 115, 22, 0.9))';
+      badgeClass = 'bg-orange-950/95 border-orange-500/80 text-orange-300 shadow-orange-950/80';
+      label = 'Tirage';
+      emoji = '🟠';
+    }
+
+    return { pct: p, offset, color, glow, badgeClass, label, emoji };
   }
 
   init() {
@@ -278,12 +320,31 @@ class TableUI {
       const avatarBg = p.isBot ? (p.meta && p.meta.avatarBg ? p.meta.avatarBg : 'from-indigo-600 to-slate-800') : 'from-amber-500 to-yellow-600';
 
       if (isHuman) {
+        // Prédiction Zynga Poker Win Chance
+        let winChanceHTML = '';
+        if (this.heroWinChance && !isFolded && !isBusted && this.heroWinChance.pct !== null) {
+          const s = this.getWinChanceStyle(this.heroWinChance.pct);
+          winChanceHTML = `
+            <div class="win-chance-container" id="hero-win-chance-container">
+              <svg class="win-chance-svg" viewBox="0 0 100 100">
+                <circle class="win-chance-track" cx="50" cy="50" r="46"></circle>
+                <circle class="win-chance-bar" id="hero-win-chance-bar" cx="50" cy="50" r="46" style="stroke-dashoffset: ${s.offset}; stroke: ${s.color}; filter: ${s.glow};"></circle>
+              </svg>
+              <div class="win-chance-badge ${s.badgeClass}" id="hero-win-chance-badge" title="Chances de remporter le pot : ${s.pct}% (${s.label})">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background: ${s.color}; box-shadow: 0 0 5px ${s.color};"></span>
+                <span>${s.pct}%</span>
+              </div>
+            </div>
+          `;
+        }
+
         // Layout Joueur Humain (Hero Pod compact côte-à-côte pour zéro collision)
         seatDiv.innerHTML = `
           <div class="hero-seat-pod flex items-center gap-1.5 sm:gap-2.5 bg-slate-950/85 backdrop-blur-md px-2 py-1 rounded-2xl border-2 ${isCurrentTurn ? 'border-yellow-400 shadow-yellow-500/50 shadow-lg' : 'border-amber-500/40'} shadow-2xl relative ${isFolded ? 'opacity-40 grayscale' : ''}">
             <!-- Avatar & Infos Joueur -->
             <div class="flex flex-col items-center">
               <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 p-0.5 shadow-md flex items-center justify-center">
+                ${winChanceHTML}
                 <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
                   <svg class="timer-svg" viewBox="0 0 100 100">
                     <circle class="timer-track" cx="50" cy="50" r="46"></circle>
@@ -540,6 +601,77 @@ class TableUI {
     if (this.seatsContainer) {
       this.seatsContainer.querySelectorAll('.equity-badge').forEach((b) => b.remove());
     }
+  }
+
+  // Rendu de la prédiction de chance de remporter la main (Style Zynga Poker)
+  renderHeroWinChance(pct, activeOpponents = 1, isFolded = false) {
+    if (isFolded || pct === null || pct === undefined) {
+      this.clearHeroWinChance();
+      return;
+    }
+
+    this.heroWinChance = { pct, opponents: activeOpponents, isFolded: false };
+    const s = this.getWinChanceStyle(pct);
+
+    const container = document.getElementById('hero-win-chance-container');
+    const bar = document.getElementById('hero-win-chance-bar');
+    const badge = document.getElementById('hero-win-chance-badge');
+
+    if (container && bar && badge) {
+      container.classList.remove('hidden');
+      bar.style.strokeDashoffset = s.offset;
+      bar.style.stroke = s.color;
+      bar.style.filter = s.glow;
+      badge.className = `win-chance-badge ${s.badgeClass}`;
+      badge.innerHTML = `
+        <span class="inline-block w-1.5 h-1.5 rounded-full" style="background: ${s.color}; box-shadow: 0 0 5px ${s.color};"></span>
+        <span>${s.pct}%</span>
+      `;
+      badge.title = `Chances de remporter le pot : ${s.pct}% (${s.label})`;
+    } else {
+      // Si l'élément n'est pas encore présent dans le DOM, l'injecter autour de l'avatar du Hero
+      const heroPod = document.querySelector('.hero-seat-pod');
+      if (heroPod) {
+        const avatarWrapper = heroPod.querySelector('.relative.rounded-full');
+        if (avatarWrapper && !document.getElementById('hero-win-chance-container')) {
+          const div = document.createElement('div');
+          div.className = 'win-chance-container';
+          div.id = 'hero-win-chance-container';
+          div.innerHTML = `
+            <svg class="win-chance-svg" viewBox="0 0 100 100">
+              <circle class="win-chance-track" cx="50" cy="50" r="46"></circle>
+              <circle class="win-chance-bar" id="hero-win-chance-bar" cx="50" cy="50" r="46" style="stroke-dashoffset: ${s.offset}; stroke: ${s.color}; filter: ${s.glow};"></circle>
+            </svg>
+            <div class="win-chance-badge ${s.badgeClass}" id="hero-win-chance-badge" title="Chances de remporter le pot : ${s.pct}% (${s.label})">
+              <span class="inline-block w-1.5 h-1.5 rounded-full" style="background: ${s.color}; box-shadow: 0 0 5px ${s.color};"></span>
+              <span>${s.pct}%</span>
+            </div>
+          `;
+          avatarWrapper.insertBefore(div, avatarWrapper.firstChild);
+        }
+      }
+    }
+
+    // Mettre à jour également la pilule dans l'Action Bar
+    const pill = document.getElementById('my-hand-equity-pill');
+    if (pill) {
+      pill.classList.remove('hidden');
+      pill.style.borderColor = s.color;
+      pill.style.color = s.color;
+      pill.style.backgroundColor = 'rgba(15, 23, 42, 0.92)';
+      pill.innerHTML = `
+        <span class="inline-block w-2 h-2 rounded-full" style="background: ${s.color}; box-shadow: 0 0 6px ${s.color};"></span>
+        <span class="font-black">${s.pct}% de chances</span>
+      `;
+    }
+  }
+
+  clearHeroWinChance() {
+    this.heroWinChance = null;
+    const container = document.getElementById('hero-win-chance-container');
+    if (container) container.classList.add('hidden');
+    const pill = document.getElementById('my-hand-equity-pill');
+    if (pill) pill.classList.add('hidden');
   }
 
   // Affichage de la bannière de victoire au Showdown
