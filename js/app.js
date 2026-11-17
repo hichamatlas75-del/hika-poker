@@ -109,6 +109,9 @@ class HikaPokerApp {
     // 9. Initialiser l'état visuel du bouton son
     this.updateSoundButtonUI();
 
+    // 9b. Initialiser l'avatar de la croupière Sophia (Zynga Poker)
+    this.updateDealerAvatar();
+
     // 10. Vérifier automatiquement l'éligibilité au Bonus Quotidien au lancement
     setTimeout(() => {
       const dailyStatus = window.storageManager.getDailyBonusStatus();
@@ -490,6 +493,15 @@ class HikaPokerApp {
         if (!reactionsPopover.contains(e.target) && e.target !== btnReactions) {
           reactionsPopover.classList.add('hidden');
         }
+      });
+    }
+
+    // Bouton Pourboire Croupière Sophia (Tip the Dealer - Zynga Poker)
+    const btnTipDealer = document.getElementById('btn-tip-dealer');
+    if (btnTipDealer) {
+      btnTipDealer.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.tipDealer(50);
       });
     }
 
@@ -1918,6 +1930,7 @@ class HikaPokerApp {
     document.getElementById('lobby-view').classList.add('hidden');
     document.getElementById('table-view').classList.remove('hidden');
     document.getElementById('current-table-title').textContent = tableName;
+    this.updateDealerAvatar();
     this.requestWakeLock();
   }
 
@@ -1959,6 +1972,67 @@ class HikaPokerApp {
     document.getElementById('lobby-view').classList.remove('hidden');
     this.updateUserHeader();
     this.checkAndShowActiveTournament();
+  }
+
+  updateDealerAvatar() {
+    const miniAvatarEl = document.getElementById('dealer-mini-avatar');
+    if (miniAvatarEl && window.HikaAvatars) {
+      miniAvatarEl.innerHTML = window.HikaAvatars.renderAvatarHTML('vip-zynga-dealer', 'w-full h-full');
+    }
+  }
+
+  tipDealer(amount = 50) {
+    const player = this.engine ? this.engine.getPlayer(this.humanId) : null;
+    const profile = window.storageManager.getProfile();
+    const availableChips = player ? player.chips : profile.chips;
+
+    if (availableChips < amount) {
+      this.showToast('Jetons insuffisants pour un pourboire !', '⚠️');
+      return;
+    }
+
+    if (player) {
+      player.chips -= amount;
+      if (this.engine) {
+        window.tableUI.renderSeats(this.engine.getState(this.humanId), this.humanId, this.winningCards || []);
+      }
+    } else if (profile.chips >= amount) {
+      window.storageManager.addChips(-amount);
+      this.updateUserHeader();
+    }
+
+    if (window.soundFX) {
+      window.soundFX.playChip();
+    }
+
+    const heroSeatEl = document.getElementById('seat-ui-0') || document.getElementById('btn-tip-dealer');
+    const dealerBoxEl = document.getElementById('dealer-box-container');
+    if (window.tableUI && heroSeatEl && dealerBoxEl) {
+      window.tableUI.flyChips(heroSeatEl, dealerBoxEl);
+    }
+
+    if (window.tableUI) {
+      window.tableUI.showFloatingReaction(this.humanId, '💖');
+    }
+
+    const bubble = document.getElementById('dealer-speech-bubble');
+    if (bubble) {
+      const quotes = [
+        "💖 Merci pour le pourboire ! Que la chance soit avec vous ! ✨",
+        "💖 Quel geste élégant ! Les As sont avec vous aujourd'hui ! ♠️✨",
+        "💖 Merci infiniment ! Que le flop vous soit royal ! 👑",
+        "💖 Merci champion ! La chance sourit aux audacieux ! 🍀",
+        "💖 Sophia vous remercie ! Bonne chance pour cette main ! ✨"
+      ];
+      bubble.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+      bubble.classList.remove('hidden');
+      if (this._dealerBubbleTimer) clearTimeout(this._dealerBubbleTimer);
+      this._dealerBubbleTimer = setTimeout(() => {
+        bubble.classList.add('hidden');
+      }, 3200);
+    }
+
+    this.showToast(`Vous avez donné ${amount} 🪙 de pourboire à Sophia !`, '💖');
   }
 
   togglePause() {

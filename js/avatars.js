@@ -16,6 +16,339 @@
 
   const AVATAR_PRESETS = [
     {
+      id: 'vip-zynga-noir-lady',
+      name: 'Noir Fedora Lady',
+      tag: 'ZYNGA HERO',
+      title: 'L’Ombre Mystérieuse de Vegas',
+      bgGradient: 'from-slate-950 via-teal-950 to-cyan-950',
+      badgeColor: 'bg-gradient-to-r from-cyan-400 to-teal-400 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="zn-bg" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#083344"/>
+            <stop offset="60%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="zn-hat" x1="0" y1="0" x2="64" y2="40" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#334155"/>
+            <stop offset="0.3" stop-color="#0f172a"/>
+            <stop offset="1" stop-color="#020617"/>
+          </linearGradient>
+          <linearGradient id="zn-glow" x1="10" y1="20" x2="54" y2="28" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#06b6d4"/>
+            <stop offset="0.5" stop-color="#22d3ee"/>
+            <stop offset="1" stop-color="#0891b2"/>
+          </linearGradient>
+          <linearGradient id="zn-hair" x1="16" y1="20" x2="48" y2="58" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fef08a"/>
+            <stop offset="0.4" stop-color="#06b6d4"/>
+            <stop offset="1" stop-color="#083344"/>
+          </linearGradient>
+          <linearGradient id="zn-rim" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#22d3ee"/>
+            <stop offset="0.5" stop-color="#06b6d4"/>
+            <stop offset="1" stop-color="#083344"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#zn-bg)" stroke="url(#zn-rim)" stroke-width="2.5"/>
+        <circle cx="32" cy="30" r="18" fill="#0891b2" opacity="0.25" filter="blur(4px)"/>
+        <path d="M12 62 C15 48 24 45 28 44 L32 50 L36 44 C40 45 49 48 52 62 Z" fill="#090d16"/>
+        <path d="M22 62 L28 45 L32 50 L26 62 Z" fill="#083344" stroke="#22d3ee" stroke-width="1.2"/>
+        <path d="M42 62 L36 45 L32 50 L38 62 Z" fill="#083344" stroke="#22d3ee" stroke-width="1.2"/>
+        <circle cx="32" cy="51" r="2" fill="#eab308" stroke="#fef08a" stroke-width="0.7"/>
+        <path d="M16 36 C14 44 17 55 22 60 C20 52 20 44 22 36 Z" fill="url(#zn-hair)"/>
+        <path d="M48 36 C50 44 47 55 42 60 C44 52 44 44 42 36 Z" fill="url(#zn-hair)"/>
+        <path d="M26 34 C26 42 32 45 32 45 C32 45 38 42 38 34 Z" fill="#fbcfe8"/>
+        <path d="M29 39 Q32 41.5 35 39 Q32 40 29 39" fill="#e11d48"/>
+        <path d="M22 30 C22 36 32 38 32 38 C32 38 42 36 42 30 Z" fill="#020617" opacity="0.85"/>
+        <path d="M6 31 C10 26 24 23 32 23 C40 23 54 26 58 31 C52 28 40 26 32 26 C24 26 12 28 6 31 Z" fill="url(#zn-glow)"/>
+        <path d="M5 32 C10 27 24 24 32 24 C40 24 54 27 59 32 C51 30 40 28 32 28 C24 28 13 30 5 32 Z" fill="url(#zn-hat)"/>
+        <path d="M19 26 C19 14 24 10 32 10 C40 10 45 14 45 26 C41 24 36 23 32 23 C28 23 23 24 19 26 Z" fill="url(#zn-hat)"/>
+        <path d="M26 10 C29 8 35 8 38 10 C35 12 29 12 26 10 Z" fill="#020617"/>
+        <path d="M20 25 C24 23 40 23 44 25 L44 23 C40 21 24 21 20 23 Z" fill="url(#zn-glow)"/>
+      </svg>`
+    },
+    {
+      id: 'vip-zynga-eagle',
+      name: 'American Eagle VIP',
+      tag: 'ZYNGA EAGLE',
+      title: 'L’Aigle Royal au Nœud Papillon',
+      bgGradient: 'from-amber-700 via-emerald-950 to-slate-950',
+      badgeColor: 'bg-gradient-to-r from-orange-400 to-amber-500 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="ze-bg" cx="45%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#14532d"/>
+            <stop offset="70%" stop-color="#052e16"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="ze-beak" x1="16" y1="28" x2="4" y2="44" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fef08a"/>
+            <stop offset="0.4" stop-color="#f59e0b"/>
+            <stop offset="1" stop-color="#b45309"/>
+          </linearGradient>
+          <linearGradient id="ze-bowtie" x1="18" y1="46" x2="46" y2="60" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fb923c"/>
+            <stop offset="0.5" stop-color="#ea580c"/>
+            <stop offset="1" stop-color="#9a3412"/>
+          </linearGradient>
+          <linearGradient id="ze-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#fde047"/>
+            <stop offset="0.5" stop-color="#eab308"/>
+            <stop offset="1" stop-color="#854d0e"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#ze-bg)" stroke="url(#ze-gold)" stroke-width="2.5"/>
+        <circle cx="32" cy="30" r="22" stroke="#84cc16" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6"/>
+        <path d="M14 62 C16 48 24 44 32 44 C40 44 48 48 50 62 Z" fill="#18181b"/>
+        <g id="ze-bowtie-group">
+          <polygon points="20,49 29,52 20,57" fill="url(#ze-bowtie)"/>
+          <polygon points="44,49 35,52 44,57" fill="url(#ze-bowtie)"/>
+          <path d="M20 49 Q24 53 20 57 L29 53 Z" fill="#f97316"/>
+          <path d="M44 49 Q40 53 44 57 L35 53 Z" fill="#f97316"/>
+          <ellipse cx="32" cy="53" rx="3.5" ry="3" fill="#ea580c" stroke="#fed7aa" stroke-width="0.8"/>
+          <polygon points="29,55 26,62 31,61" fill="#c2410c"/>
+          <polygon points="35,55 38,62 33,61" fill="#c2410c"/>
+        </g>
+        <path d="M22 46 L26 41 L29 44 L32 39 L35 44 L38 41 L42 46 C46 38 48 26 42 16 C34 10 24 12 18 20 C14 26 16 38 22 46 Z" fill="#f8fafc"/>
+        <path d="M38 18 C44 26 42 36 38 42 L35 44 L32 39 L35 34 C36 28 38 22 38 18 Z" fill="#e2e8f0"/>
+        <ellipse cx="28" cy="24" rx="3.5" ry="3.5" fill="#ca8a04"/>
+        <ellipse cx="28" cy="24" rx="2.2" ry="2.2" fill="#fef08a"/>
+        <ellipse cx="27.5" cy="24" rx="1.4" ry="1.4" fill="#0f172a"/>
+        <circle cx="26.8" cy="23.2" r="0.7" fill="#ffffff"/>
+        <path d="M22 21 Q28 19 33 24" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" fill="none"/>
+        <path d="M10 33 C12 28 20 27 25 28 C26 31 24 35 21 37 C17 38 11 38 7 42 C6 38 7 35 10 33 Z" fill="url(#ze-beak)"/>
+        <path d="M7 42 C12 39 18 39 22 37 L19 39 C14 41 10 43 7 42 Z" fill="#78350f"/>
+        <ellipse cx="20" cy="30" rx="1.2" ry="0.6" transform="rotate(-15, 20, 30)" fill="#78350f"/>
+        <path d="M12 32 Q16 29 22 30" stroke="#fef08a" stroke-width="1" stroke-linecap="round" fill="none"/>
+      </svg>`
+    },
+    {
+      id: 'vip-zynga-trex',
+      name: 'T-Rex Jurassic',
+      tag: 'ZYNGA BEAST',
+      title: 'Le Prédateur du Crétacé',
+      bgGradient: 'from-amber-900 via-emerald-950 to-slate-950',
+      badgeColor: 'bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="zt-portal" cx="60%" cy="45%" r="65%">
+            <stop offset="0%" stop-color="#0284c7"/>
+            <stop offset="50%" stop-color="#0369a1"/>
+            <stop offset="85%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="zt-skin" x1="10" y1="10" x2="55" y2="55" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#84cc16"/>
+            <stop offset="0.3" stop-color="#4d7c0f"/>
+            <stop offset="0.7" stop-color="#365314"/>
+            <stop offset="1" stop-color="#14532d"/>
+          </linearGradient>
+          <linearGradient id="zt-mouth" x1="20" y1="30" x2="45" y2="50" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#991b1b"/>
+            <stop offset="0.6" stop-color="#7f1d1d"/>
+            <stop offset="1" stop-color="#450a0a"/>
+          </linearGradient>
+          <linearGradient id="zt-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#facc15"/>
+            <stop offset="0.5" stop-color="#ca8a04"/>
+            <stop offset="1" stop-color="#713f12"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#zt-portal)" stroke="url(#zt-gold)" stroke-width="2.5"/>
+        <circle cx="32" cy="32" r="26" stroke="#38bdf8" stroke-width="1.8" opacity="0.4" stroke-dasharray="8 4"/>
+        <path d="M18 28 C22 24 38 22 48 30 C52 35 46 45 42 48 C30 52 22 44 18 36 Z" fill="url(#zt-mouth)"/>
+        <path d="M28 42 C32 40 38 41 40 46 C34 48 28 46 28 42 Z" fill="#ef4444"/>
+        <polygon points="20,29 22,34 24,29" fill="#f8fafc"/>
+        <polygon points="24,28 26,35 28,28" fill="#f8fafc"/>
+        <polygon points="28,27 31,36 34,27" fill="#f8fafc"/>
+        <polygon points="34,27 37,35 40,28" fill="#f8fafc"/>
+        <polygon points="40,29 43,34 45,30" fill="#f8fafc"/>
+        <polygon points="45,30 47,33 48,31" fill="#f8fafc"/>
+        <polygon points="22,40 24,36 26,41" fill="#f8fafc"/>
+        <polygon points="27,42 29,35 32,43" fill="#f8fafc"/>
+        <polygon points="33,44 36,37 38,45" fill="#f8fafc"/>
+        <polygon points="39,46 41,40 43,47" fill="#f8fafc"/>
+        <path d="M8 26 C10 16 26 12 40 14 C48 16 54 22 55 28 C45 27 32 26 22 28 C16 29 11 28 8 26 Z" fill="url(#zt-skin)"/>
+        <path d="M12 25 Q14 20 22 18" stroke="#1a2e05" stroke-width="2" stroke-linecap="round"/>
+        <ellipse cx="14" cy="24" rx="1.8" ry="1" transform="rotate(-15, 14, 24)" fill="#0f172a"/>
+        <path d="M30 16 C34 14 42 15 44 20 C38 20 34 19 30 16 Z" fill="#14532d"/>
+        <ellipse cx="37" cy="19" rx="3.2" ry="3.2" fill="#ea580c"/>
+        <ellipse cx="37" cy="19" rx="2" ry="2" fill="#facc15"/>
+        <ellipse cx="37" cy="19" rx="0.9" ry="2" fill="#020617"/>
+        <circle cx="36.2" cy="17.8" r="0.6" fill="#fff"/>
+        <path d="M16 38 C18 48 30 54 44 52 C45 49 44 46 42 45 C32 46 24 44 16 38 Z" fill="url(#zt-skin)"/>
+        <circle cx="28" cy="18" r="1.2" fill="#a3e635" opacity="0.6"/>
+        <circle cx="32" cy="22" r="1.5" fill="#a3e635" opacity="0.5"/>
+        <circle cx="20" cy="24" r="1" fill="#a3e635" opacity="0.6"/>
+      </svg>`
+    },
+    {
+      id: 'vip-zynga-dealer',
+      name: 'Croupière Sophia',
+      tag: 'ZYNGA DEALER',
+      title: 'L’Hôtesse Officielle Zynga',
+      bgGradient: 'from-amber-600 via-rose-950 to-slate-950',
+      badgeColor: 'bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="zd-bg" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#064e3b"/>
+            <stop offset="70%" stop-color="#022c22"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="zd-hair" x1="16" y1="12" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fef08a"/>
+            <stop offset="0.5" stop-color="#facc15"/>
+            <stop offset="1" stop-color="#b45309"/>
+          </linearGradient>
+          <linearGradient id="zd-vest" x1="20" y1="36" x2="44" y2="60" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#1e1b4b"/>
+            <stop offset="0.5" stop-color="#0f172a"/>
+            <stop offset="1" stop-color="#020617"/>
+          </linearGradient>
+          <linearGradient id="zd-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#fef08a"/>
+            <stop offset="0.5" stop-color="#eab308"/>
+            <stop offset="1" stop-color="#a16207"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#zd-bg)" stroke="url(#zd-gold)" stroke-width="2.5"/>
+        <path d="M14 62 L22 42 L32 48 L42 42 L50 62 Z" fill="#ffffff"/>
+        <polygon points="30,44 34,44 33,54 31,54" fill="#6366f1"/>
+        <path d="M14 62 L22 42 L29 52 L29 62 Z" fill="url(#zd-vest)"/>
+        <path d="M50 62 L42 42 L35 52 L35 62 Z" fill="url(#zd-vest)"/>
+        <circle cx="32" cy="55" r="1.3" fill="url(#zd-gold)"/>
+        <circle cx="32" cy="59" r="1.3" fill="url(#zd-gold)"/>
+        <rect x="23" y="47" width="5" height="3" rx="0.8" fill="url(#zd-gold)" stroke="#78350f" stroke-width="0.4"/>
+        <text x="25.5" y="49.2" font-size="2" font-weight="900" fill="#451a03" text-anchor="middle">★</text>
+        <path d="M29 36 L29 42 L35 42 L35 36 Z" fill="#fde2e4"/>
+        <circle cx="32" cy="27" r="10.5" fill="#fde2e4"/>
+        <path d="M19 28 C15 16 22 10 32 10 C42 10 49 16 45 28 C48 38 45 52 40 56 C38 48 38 38 38 34 C38 28 26 28 26 34 C26 38 26 48 24 56 C19 52 16 38 19 28 Z" fill="url(#zd-hair)"/>
+        <ellipse cx="28" cy="26" rx="2" ry="1.8" fill="#0284c7"/>
+        <ellipse cx="36" cy="26" rx="2" ry="1.8" fill="#0284c7"/>
+        <circle cx="27.4" cy="25.4" r="0.7" fill="#fff"/>
+        <circle cx="35.4" cy="25.4" r="0.7" fill="#fff"/>
+        <path d="M26 23 Q28 22 30 23.5" stroke="#78350f" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M34 23.5 Q36 22 38 23" stroke="#78350f" stroke-width="1.1" stroke-linecap="round"/>
+        <circle cx="26" cy="29" r="2" fill="#f43f5e" opacity="0.25"/>
+        <circle cx="38" cy="29" r="2" fill="#f43f5e" opacity="0.25"/>
+        <path d="M29 31 Q32 34 35 31" stroke="#e11d48" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        <polygon points="46,18 47.5,21 46,24 44.5,21" fill="#fef08a">
+          <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+        </polygon>
+      </svg>`
+    },
+    {
+      id: 'vip-zynga-pumpkin',
+      name: 'Jack-o’-Lantern',
+      tag: 'ZYNGA MYSTIC',
+      title: 'La Citrouille aux Flammes Bleues',
+      bgGradient: 'from-orange-600 via-purple-950 to-slate-950',
+      badgeColor: 'bg-gradient-to-r from-cyan-400 to-blue-500 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="zp-bg" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#3b0764"/>
+            <stop offset="70%" stop-color="#1e1b4b"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="zp-pumpkin" x1="12" y1="18" x2="52" y2="58" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#fb923c"/>
+            <stop offset="0.4" stop-color="#ea580c"/>
+            <stop offset="0.8" stop-color="#c2410c"/>
+            <stop offset="1" stop-color="#7c2d12"/>
+          </linearGradient>
+          <linearGradient id="zp-fire" x1="20" y1="20" x2="44" y2="48" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#e0f2fe"/>
+            <stop offset="0.3" stop-color="#38bdf8"/>
+            <stop offset="0.8" stop-color="#0284c7"/>
+            <stop offset="1" stop-color="#1e40af"/>
+          </linearGradient>
+          <linearGradient id="zp-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#38bdf8"/>
+            <stop offset="0.5" stop-color="#f59e0b"/>
+            <stop offset="1" stop-color="#b45309"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#zp-bg)" stroke="url(#zp-gold)" stroke-width="2.5"/>
+        <circle cx="32" cy="34" r="21" fill="#0284c7" opacity="0.3" filter="blur(5px)"/>
+        <path d="M30 18 Q32 10 37 11 L35 18 Z" fill="#15803d" stroke="#14532d" stroke-width="0.8"/>
+        <path d="M12 36 C12 24 20 18 32 18 C44 18 52 24 52 36 C52 48 42 55 32 55 C22 55 12 48 12 36 Z" fill="url(#zp-pumpkin)"/>
+        <path d="M24 19 C18 24 18 46 25 54" stroke="#7c2d12" stroke-width="1.8" fill="none" opacity="0.6"/>
+        <path d="M40 19 C46 24 46 46 39 54" stroke="#7c2d12" stroke-width="1.8" fill="none" opacity="0.6"/>
+        <path d="M32 18 C30 25 30 47 32 55" stroke="#7c2d12" stroke-width="1.5" fill="none" opacity="0.5"/>
+        <polygon points="20,29 28,32 23,37" fill="url(#zp-fire)"/>
+        <polygon points="44,29 36,32 41,37" fill="url(#zp-fire)"/>
+        <polygon points="32,34 30,38 34,38" fill="url(#zp-fire)"/>
+        <path d="M19 43 L23 45 L25 42 L29 46 L32 43 L35 46 L39 42 L41 45 L45 43 C43 51 21 51 19 43 Z" fill="url(#zp-fire)"/>
+        <circle cx="24" cy="33" r="1.5" fill="#f0fdf4">
+          <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="40" cy="33" r="1.5" fill="#f0fdf4">
+          <animate attributeName="opacity" values="0.7;1;0.7" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="32" cy="46" r="2" fill="#f0fdf4">
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="1.4s" repeatCount="indefinite"/>
+        </circle>
+      </svg>`
+    },
+    {
+      id: 'vip-zynga-witch',
+      name: 'Sorcière Gothique',
+      tag: 'ZYNGA WITCH',
+      title: 'L’Enchanteresse Pourpre',
+      bgGradient: 'from-purple-900 via-fuchsia-950 to-slate-950',
+      badgeColor: 'bg-gradient-to-r from-purple-400 to-pink-500 text-slate-950 font-black',
+      svg: `<svg viewBox="0 0 64 64" class="w-full h-full select-none" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="zw-bg" cx="50%" cy="40%" r="55%">
+            <stop offset="0%" stop-color="#4a044e"/>
+            <stop offset="70%" stop-color="#2e1065"/>
+            <stop offset="100%" stop-color="#020617"/>
+          </radialGradient>
+          <linearGradient id="zw-dress" x1="16" y1="42" x2="48" y2="62" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#86198f"/>
+            <stop offset="0.6" stop-color="#581c87"/>
+            <stop offset="1" stop-color="#3b0764"/>
+          </linearGradient>
+          <linearGradient id="zw-hat" x1="10" y1="10" x2="54" y2="35" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#1e1b4b"/>
+            <stop offset="0.5" stop-color="#0f172a"/>
+            <stop offset="1" stop-color="#020617"/>
+          </linearGradient>
+          <linearGradient id="zw-gold" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#e879f9"/>
+            <stop offset="0.5" stop-color="#c084fc"/>
+            <stop offset="1" stop-color="#7e22ce"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="30" fill="url(#zw-bg)" stroke="url(#zw-gold)" stroke-width="2.5"/>
+        <circle cx="44" cy="18" r="6" fill="#fef08a" opacity="0.6"/>
+        <path d="M12 62 C16 48 24 44 26 44 L32 52 L38 44 C40 44 48 48 52 62 Z" fill="url(#zw-dress)"/>
+        <path d="M26 44 L28 62 L36 62 L38 44 Z" fill="#0f172a"/>
+        <line x1="29" y1="48" x2="35" y2="52" stroke="#e879f9" stroke-width="1"/>
+        <line x1="35" y1="48" x2="29" y2="52" stroke="#e879f9" stroke-width="1"/>
+        <line x1="29" y1="54" x2="35" y2="58" stroke="#e879f9" stroke-width="1"/>
+        <line x1="35" y1="54" x2="29" y2="58" stroke="#e879f9" stroke-width="1"/>
+        <path d="M29 36 L29 44 L35 44 L35 36 Z" fill="#fbcfe8"/>
+        <circle cx="32" cy="28" r="10.5" fill="#fbcfe8"/>
+        <path d="M18 32 C15 42 16 54 22 60 C21 50 22 42 24 34 Z" fill="#581c87"/>
+        <path d="M46 32 C49 42 48 54 42 60 C43 50 42 42 40 34 Z" fill="#581c87"/>
+        <ellipse cx="28" cy="27" rx="1.8" ry="1.6" fill="#10b981"/>
+        <ellipse cx="36" cy="27" rx="1.8" ry="1.6" fill="#10b981"/>
+        <circle cx="27.4" cy="26.4" r="0.6" fill="#fff"/>
+        <circle cx="35.4" cy="26.4" r="0.6" fill="#fff"/>
+        <path d="M25 24 Q28 22 30 24.5" stroke="#020617" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M34 24.5 Q36 22 39 24" stroke="#020617" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M29 33 Q32 35.5 35 33" stroke="#86198f" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+        <ellipse cx="32" cy="22" rx="22" ry="5" fill="url(#zw-hat)"/>
+        <path d="M19 22 C22 14 26 8 38 6 C34 9 32 14 45 22 Z" fill="url(#zw-hat)"/>
+        <ellipse cx="32" cy="21.5" rx="13" ry="2.5" fill="#a21caf"/>
+        <rect x="30" y="19.5" width="4" height="4" rx="0.5" fill="#e879f9" stroke="#581c87" stroke-width="0.8"/>
+      </svg>`
+    },
+    {
       id: 'vip-croupier',
       name: 'Croupier Pro',
       tag: 'CROUPIER',
