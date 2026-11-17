@@ -252,6 +252,10 @@ class PlayerControlsUI {
     return false;
   }
 
+  setPushOrFoldMode(enabled) {
+    this.isPushOrFoldMode = !!enabled;
+  }
+
   showActionBar(legal) {
     if (!this.actionBarEl) return;
     this.actionBarEl.classList.remove('hidden');
@@ -262,6 +266,16 @@ class PlayerControlsUI {
     const btnCall = document.getElementById('btn-call');
     const btnOpenRaise = document.getElementById('btn-open-raise');
     const btnAllIn = document.getElementById('btn-all-in');
+
+    // En mode All-in or Fold (Push or Fold Express), seuls Fold et All-in sont présentés
+    if (this.isPushOrFoldMode) {
+      if (btnFold) btnFold.style.display = 'block';
+      if (btnAllIn) btnAllIn.style.display = 'block';
+      if (btnCheck) btnCheck.style.display = 'none';
+      if (btnCall) btnCall.style.display = 'none';
+      if (btnOpenRaise) btnOpenRaise.style.display = 'none';
+      return;
+    }
 
     // Fold toujours disponible
     if (btnFold) btnFold.style.display = 'block';

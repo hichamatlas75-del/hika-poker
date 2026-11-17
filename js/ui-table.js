@@ -69,6 +69,11 @@ class TableUI {
     this.boardEl = document.getElementById('community-cards');
     this.potEl = document.getElementById('table-pot-container');
     this.seatsContainer = document.getElementById('seats-container');
+    this.flyingChipsLayer = document.getElementById('flying-chips-layer');
+    this.oddsHudEl = document.getElementById('table-odds-hud');
+    this.oddsOutsBadge = document.getElementById('odds-outs-badge');
+    this.oddsPotOddsBadge = document.getElementById('odds-potodds-badge');
+    this.oddsEvBadge = document.getElementById('odds-ev-badge');
   }
 
   // Création du HTML pour une carte (supporte human, board, bot)
@@ -213,16 +218,22 @@ class TableUI {
 
     const players = engineState.players || [];
     const humanSeat = players.findIndex((p) => p && p.id === humanPlayerId);
-    const numSeats = 6;
+    const numSeats = engineState.maxSeats || 6;
+    const seatMap = {
+      2: [0, 3],
+      4: [0, 2, 3, 4],
+      6: [0, 1, 2, 3, 4, 5]
+    }[numSeats] || [0, 1, 2, 3, 4, 5];
 
-    for (let uiIdx = 0; uiIdx < numSeats; uiIdx++) {
-      // Rotation relative pour que le joueur humain soit toujours au siège 0 (Bas Centre)
+    for (let uiIdx = 0; uiIdx < seatMap.length; uiIdx++) {
+      const uiPos = seatMap[uiIdx];
+      // Rotation relative pour que le joueur humain soit toujours au premier siège (Bas Centre: seat-pos-0)
       let engineSeatIdx = humanSeat >= 0 ? (uiIdx + humanSeat) % numSeats : uiIdx;
       const p = players[engineSeatIdx];
 
       const seatDiv = document.createElement('div');
-      seatDiv.className = `player-seat seat-pos-${uiIdx} absolute transition-all duration-300`;
-      seatDiv.id = `seat-ui-${uiIdx}`;
+      seatDiv.className = `player-seat seat-pos-${uiPos} absolute transition-all duration-300`;
+      seatDiv.id = `seat-ui-${uiPos}`;
       seatDiv.dataset.engineSeat = engineSeatIdx;
 
       if (!p) {
@@ -338,7 +349,7 @@ class TableUI {
 
       // Jeton de mise en cours sur la table
       const betChip = p.bet > 0 ? `
-        <div class="player-bet-chip absolute ${this.getBetPositionClass(uiIdx)} flex items-center gap-1 bg-black/75 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/60 shadow-lg z-25 animate-fade-in pointer-events-none">
+        <div class="player-bet-chip absolute ${this.getBetPositionClass(uiPos)} flex items-center gap-1 bg-black/75 px-1.5 sm:px-2 py-0.5 rounded-full border border-amber-400/60 shadow-lg z-25 animate-fade-in pointer-events-none">
           <div class="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full poker-chip chip-gold text-[7px] sm:text-[8px]">★</div>
           <span class="text-[10px] sm:text-xs font-black text-amber-300">${p.bet.toLocaleString()}</span>
         </div>
@@ -377,10 +388,10 @@ class TableUI {
             <div class="flex flex-col items-center">
               <div class="relative w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-amber-500 to-yellow-600 p-0.5 shadow-md flex items-center justify-center overflow-visible">
                 ${winChanceHTML}
-                <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
+                <div class="timer-container" id="timer-ui-${uiPos}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
                   <svg class="timer-svg" viewBox="0 0 100 100">
                     <circle class="timer-track" cx="50" cy="50" r="46"></circle>
-                    <circle class="timer-bar" id="timer-bar-${uiIdx}" cx="50" cy="50" r="46"></circle>
+                    <circle class="timer-bar" id="timer-bar-${uiPos}" cx="50" cy="50" r="46"></circle>
                   </svg>
                 </div>
                 ${renderedAvatar}
@@ -421,10 +432,10 @@ class TableUI {
 
             <!-- Avatar & Timer -->
             <div class="relative w-9 h-9 sm:w-11 sm:h-11 md:w-13 md:h-13 rounded-full bg-gradient-to-br ${avatarBg} p-0.5 shadow-xl flex items-center justify-center border-2 ${isCurrentTurn ? 'border-yellow-400 turn-glow-active' : 'border-slate-700'} overflow-visible">
-              <div class="timer-container" id="timer-ui-${uiIdx}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
+              <div class="timer-container" id="timer-ui-${uiPos}" style="display: ${isCurrentTurn ? 'block' : 'none'};">
                 <svg class="timer-svg" viewBox="0 0 100 100">
                   <circle class="timer-track" cx="50" cy="50" r="46"></circle>
-                  <circle class="timer-bar" id="timer-bar-${uiIdx}" cx="50" cy="50" r="46"></circle>
+                  <circle class="timer-bar" id="timer-bar-${uiPos}" cx="50" cy="50" r="46"></circle>
                 </svg>
               </div>
 
@@ -473,8 +484,15 @@ class TableUI {
     this.stopTurnTimer();
     this.currentTimerSeat = uiSeatIdx;
 
-    const timerContainer = document.getElementById(`timer-ui-${uiSeatIdx}`);
-    const timerBar = document.getElementById(`timer-bar-${uiSeatIdx}`);
+    let timerContainer = document.getElementById(`timer-ui-${uiSeatIdx}`);
+    let timerBar = document.getElementById(`timer-bar-${uiSeatIdx}`);
+    if (!timerContainer || !timerBar) {
+      const seatEl = this.getSeatElement(uiSeatIdx);
+      if (seatEl) {
+        timerContainer = seatEl.querySelector('.timer-container');
+        timerBar = seatEl.querySelector('.timer-bar');
+      }
+    }
     if (!timerContainer || !timerBar) return;
 
     timerContainer.style.display = 'block';
@@ -561,8 +579,12 @@ class TableUI {
 
   // Trouver l'élément DOM du siège d'un joueur
   getSeatElement(playerId) {
-    if (!playerId || !this.seatsContainer) return null;
-    return this.seatsContainer.querySelector(`[data-player-id="${playerId}"]`);
+    if (playerId === undefined || playerId === null || !this.seatsContainer) return null;
+    if (typeof playerId === 'string') {
+      return this.seatsContainer.querySelector(`[data-player-id="${playerId}"]`);
+    }
+    return this.seatsContainer.querySelector(`#seat-ui-${playerId}`) ||
+           this.seatsContainer.querySelector(`[data-engine-seat="${playerId}"]`);
   }
 
   // Animation de jetons volants (mise vers pot ou pot vers joueur)
@@ -580,30 +602,158 @@ class TableUI {
       return;
     }
 
-    const startX = rFrom.left + rFrom.width / 2;
-    const startY = rFrom.top + rFrom.height / 2;
-    const endX = rTo.left + rTo.width / 2;
-    const endY = rTo.top + rTo.height / 2;
+    const tableEl = this.tableEl || document.getElementById('poker-table');
+    const rTable = tableEl ? tableEl.getBoundingClientRect() : { left: 0, top: 0 };
+    const layer = this.flyingChipsLayer || document.getElementById('flying-chips-layer') || document.body;
+    const isInsideLayer = layer !== document.body;
 
-    const chip = document.createElement('div');
-    chip.className = 'flying-chip poker-chip chip-gold w-6 h-6 text-[10px] fixed z-50 pointer-events-none transition-all duration-500 ease-out flex items-center justify-center shadow-lg';
-    chip.innerHTML = '★';
-    chip.style.left = `${startX - 12}px`;
-    chip.style.top = `${startY - 12}px`;
-    document.body.appendChild(chip);
+    const startX = isInsideLayer ? (rFrom.left + rFrom.width / 2 - rTable.left) : (rFrom.left + rFrom.width / 2);
+    const startY = isInsideLayer ? (rFrom.top + rFrom.height / 2 - rTable.top) : (rFrom.top + rFrom.height / 2);
+    const endX = isInsideLayer ? (rTo.left + rTo.width / 2 - rTable.left) : (rTo.left + rTo.width / 2);
+    const endY = isInsideLayer ? (rTo.top + rTo.height / 2 - rTable.top) : (rTo.top + rTo.height / 2);
 
     if (window.soundFX) window.soundFX.playChip();
 
-    // Force reflow
-    void chip.offsetWidth;
+    const count = 3;
+    let finished = 0;
+    for (let i = 0; i < count; i++) {
+      setTimeout(() => {
+        const chip = document.createElement('div');
+        chip.className = 'flying-chip';
+        chip.innerHTML = '★';
+        const offsetX = (Math.random() - 0.5) * 12;
+        const offsetY = (Math.random() - 0.5) * 12;
+        chip.style.left = `${startX + offsetX}px`;
+        chip.style.top = `${startY + offsetY}px`;
+        layer.appendChild(chip);
 
-    chip.style.transform = `translate(${endX - startX}px, ${endY - startY}px) scale(1.15)`;
-    chip.style.opacity = '1';
+        // Force reflow
+        void chip.offsetWidth;
+
+        const deltaX = (endX - startX) + (Math.random() - 0.5) * 16;
+        const deltaY = (endY - startY) + (Math.random() - 0.5) * 16;
+        chip.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(0.95)`;
+        chip.style.opacity = '0.95';
+
+        setTimeout(() => {
+          chip.style.opacity = '0';
+          setTimeout(() => {
+            chip.remove();
+            finished++;
+            if (finished === count && onComplete) onComplete();
+          }, 200);
+        }, 550);
+      }, i * 65);
+    }
+  }
+
+  // Affiche une bulle de dialogue BD pour les taunts et répliques des bots
+  showBotSpeechBubble(seatOrPlayerId, text) {
+    if (!text) return;
+    const seatEl = this.getSeatElement(seatOrPlayerId);
+    if (!seatEl) return;
+
+    // Supprimer une bulle existante
+    const oldBubble = seatEl.querySelector('.bot-speech-bubble');
+    if (oldBubble) oldBubble.remove();
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bot-speech-bubble';
+    bubble.textContent = text;
+    seatEl.appendChild(bubble);
+
+    requestAnimationFrame(() => {
+      bubble.classList.add('bubble-visible');
+    });
 
     setTimeout(() => {
-      chip.remove();
-      if (onComplete) onComplete();
-    }, 520);
+      bubble.classList.remove('bubble-visible');
+      setTimeout(() => bubble.remove(), 300);
+    }, 3200);
+  }
+
+  // Affiche une réaction émoji flottante au-dessus du joueur
+  showFloatingReaction(seatOrPlayerId, emoji) {
+    if (!emoji) return;
+    const seatEl = this.getSeatElement(seatOrPlayerId);
+    if (!seatEl) return;
+
+    const reaction = document.createElement('div');
+    reaction.className = 'floating-emoji-reaction';
+    reaction.textContent = emoji;
+    reaction.style.left = '50%';
+    reaction.style.bottom = '30px';
+    seatEl.appendChild(reaction);
+
+    setTimeout(() => reaction.remove(), 2300);
+  }
+
+  // Met à jour en direct le HUD Calculateur de Cotes & Outs
+  updateOddsHUD(oddsData) {
+    if (!this.oddsHudEl) {
+      this.oddsHudEl = document.getElementById('table-odds-hud');
+      this.oddsOutsBadge = document.getElementById('odds-outs-badge');
+      this.oddsPotOddsBadge = document.getElementById('odds-potodds-badge');
+      this.oddsEvBadge = document.getElementById('odds-ev-badge');
+    }
+    if (!this.oddsHudEl) return;
+
+    const isEnabled = window.storageManager ? (window.storageManager.getSettings().oddsHud !== false) : true;
+    if (!isEnabled || !oddsData) {
+      this.clearOddsHUD();
+      return;
+    }
+
+    const { outs, drawLabel, potOddsPct, ratio, isEvPositive, isCheckFree } = oddsData;
+
+    if (this.oddsOutsBadge) {
+      if (outs > 0) {
+        this.oddsOutsBadge.textContent = `${outs} Outs • ${drawLabel || 'Tirage'}`;
+        this.oddsOutsBadge.style.display = 'inline-block';
+      } else {
+        this.oddsOutsBadge.textContent = `0 Out (Main faite)`;
+        this.oddsOutsBadge.style.display = 'inline-block';
+      }
+    }
+
+    if (this.oddsPotOddsBadge) {
+      if (isCheckFree) {
+        this.oddsPotOddsBadge.textContent = `Cote : Gratuit (Check)`;
+      } else if (potOddsPct !== null && potOddsPct !== undefined) {
+        this.oddsPotOddsBadge.textContent = `Cote Pot : ${potOddsPct}% (${ratio}:1)`;
+      } else {
+        this.oddsPotOddsBadge.textContent = `Cote Pot : -`;
+      }
+      this.oddsPotOddsBadge.style.display = 'inline-block';
+    }
+
+    if (this.oddsEvBadge) {
+      if (isCheckFree) {
+        this.oddsEvBadge.textContent = `EV+ Gratuit`;
+        this.oddsEvBadge.className = 'px-2 py-0.5 rounded-full font-black border shadow bg-emerald-950/90 text-emerald-300 border-emerald-500/50';
+      } else if (isEvPositive) {
+        this.oddsEvBadge.textContent = `EV+ Rentable`;
+        this.oddsEvBadge.className = 'px-2 py-0.5 rounded-full font-black border shadow bg-emerald-950/90 text-emerald-300 border-emerald-500/50';
+      } else {
+        this.oddsEvBadge.textContent = `EV- Défavorable`;
+        this.oddsEvBadge.className = 'px-2 py-0.5 rounded-full font-black border shadow bg-rose-950/90 text-rose-300 border-rose-500/50';
+      }
+      this.oddsEvBadge.style.display = 'inline-block';
+    }
+
+    this.oddsHudEl.classList.remove('hidden');
+    this.oddsHudEl.classList.add('flex');
+  }
+
+  // Masque le HUD de cotes
+  clearOddsHUD() {
+    if (!this.oddsHudEl) {
+      this.oddsHudEl = document.getElementById('table-odds-hud');
+    }
+    if (this.oddsHudEl) {
+      this.oddsHudEl.classList.add('hidden');
+      this.oddsHudEl.classList.remove('flex');
+    }
   }
 
   // Affichage des probabilités (%) All-In sur chaque joueur en lice

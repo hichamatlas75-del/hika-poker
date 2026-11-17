@@ -39,7 +39,8 @@ const DEFAULT_SETTINGS = {
   fourColorDeck: false,
   theme: 'green', // 'green' | 'blue' | 'red'
   animationSpeed: 'normal',
-  autoCheck: false
+  autoCheck: false,
+  oddsHud: true
 };
 
 class StorageManager {

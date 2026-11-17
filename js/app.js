@@ -434,6 +434,65 @@ class HikaPokerApp {
     const authSettingsHaptics = document.getElementById('auth-settings-toggle-haptics');
     if (authSettingsHaptics) authSettingsHaptics.addEventListener('change', (e) => handleHapticsChange(e.target.checked));
 
+    // Option HUD Cotes & Outs
+    const handleOddsHudToggle = (enabled) => {
+      window.storageManager.updateSettings({ oddsHud: enabled });
+      this.syncSettingsUI();
+      if (!enabled && window.tableUI) {
+        window.tableUI.clearOddsHUD();
+      } else {
+        this.updateHeroWinChance();
+      }
+      this.showToast(enabled ? "Calculateur de cotes en direct activé" : "Calculateur de cotes désactivé", "📊");
+    };
+
+    const settingOddsHud = document.getElementById('setting-odds-hud');
+    if (settingOddsHud) settingOddsHud.addEventListener('change', (e) => handleOddsHudToggle(e.target.checked));
+    const authSettingOddsHud = document.getElementById('auth-setting-odds-hud');
+    if (authSettingOddsHud) authSettingOddsHud.addEventListener('change', (e) => handleOddsHudToggle(e.target.checked));
+
+    // Bouton pour ouvrir / fermer le popover de réactions émojis
+    const btnReactions = document.getElementById('btn-toggle-reactions');
+    const reactionsPopover = document.getElementById('table-reactions-popover');
+    if (btnReactions && reactionsPopover) {
+      btnReactions.addEventListener('click', (e) => {
+        e.stopPropagation();
+        reactionsPopover.classList.toggle('hidden');
+      });
+
+      // Clic sur un émoji
+      const emojiBtns = reactionsPopover.querySelectorAll('.btn-table-emoji');
+      emojiBtns.forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const emoji = btn.dataset.emoji;
+          if (window.soundFX) window.soundFX.playBtnClick();
+          if (window.tableUI) window.tableUI.showFloatingReaction(this.humanId, emoji);
+          reactionsPopover.classList.add('hidden');
+
+          // 40% de chance qu'un bot réponde à la réaction après un court délai
+          if (this.engine && Math.random() < 0.45) {
+            const activeBots = this.engine.seats.filter((s) => s && s.isBot && !s.busted);
+            if (activeBots.length > 0) {
+              const responder = activeBots[Math.floor(Math.random() * activeBots.length)];
+              const botEmojis = ['🔥', '👏', '🦈', '😎', '💪', '🎯', '🪙', '✨'];
+              const botEmoji = botEmojis[Math.floor(Math.random() * botEmojis.length)];
+              setTimeout(() => {
+                if (window.tableUI) window.tableUI.showFloatingReaction(responder.id, botEmoji);
+              }, 600 + Math.floor(Math.random() * 800));
+            }
+          }
+        });
+      });
+
+      // Fermer le popover au clic en dehors
+      document.addEventListener('click', (e) => {
+        if (!reactionsPopover.contains(e.target) && e.target !== btnReactions) {
+          reactionsPopover.classList.add('hidden');
+        }
+      });
+    }
+
     // Sous-onglets de sélection d'Avatar (VIP Zynga vs Émojis)
     const tabAvVip = document.getElementById('tab-avatar-vip');
     const tabAvEmoji = document.getElementById('tab-avatar-emoji');
@@ -741,6 +800,13 @@ class HikaPokerApp {
       if (urlInput) urlInput.value = url;
       if (keyInput) keyInput.value = key;
     }
+
+    // 7. Calculateur de Cotes & Outs HUD
+    const oddsHud = s.oddsHud !== false;
+    ['setting-odds-hud', 'auth-setting-odds-hud'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = oddsHud;
+    });
   }
 
   updateUserHeader() {
@@ -1371,10 +1437,14 @@ class HikaPokerApp {
   // =========================================================================
 
   startCashGame(stakes = 'micro') {
-    this.gameMode = 'cash';
-    let config = { sb: 10, bb: 20, buyIn: 1000, name: 'Table Amateur' };
-    if (stakes === 'low') config = { sb: 50, bb: 100, buyIn: 5000, name: 'Table Vegas' };
-    if (stakes === 'high') config = { sb: 500, bb: 1000, buyIn: 50000, name: 'Table VIP High Roller' };
+    this.gameMode = stakes === 'allin' ? 'allin' : 'cash';
+    let config = { sb: 10, bb: 20, buyIn: 1000, maxSeats: 6, name: 'Table Amateur' };
+    if (stakes === 'low') config = { sb: 50, bb: 100, buyIn: 5000, maxSeats: 6, name: 'Table Vegas' };
+    if (stakes === 'medium') config = { sb: 150, bb: 300, buyIn: 15000, maxSeats: 6, name: 'Monaco Riviera' };
+    if (stakes === 'high') config = { sb: 500, bb: 1000, buyIn: 50000, maxSeats: 6, name: 'Table VIP High Roller' };
+    if (stakes === 'ultra') config = { sb: 2500, bb: 5000, buyIn: 250000, maxSeats: 6, name: 'Macau Palace' };
+    if (stakes === 'allin') config = { sb: 100, bb: 200, buyIn: 2000, maxSeats: 4, name: 'Push or Fold Express' };
+    if (stakes === 'headsup') config = { sb: 50, bb: 100, buyIn: 5000, maxSeats: 2, name: 'Duel Heads-Up' };
 
     const profile = window.storageManager.getProfile();
     if (profile.chips < config.buyIn) {
@@ -1389,9 +1459,17 @@ class HikaPokerApp {
     window.storageManager.addChips(-config.buyIn);
     this.updateUserHeader();
 
+    // Activer / désactiver le mode Push or Fold sur les contrôles
+    if (window.playerControlsUI) {
+      window.playerControlsUI.setPushOrFoldMode(stakes === 'allin');
+    }
+
+    const maxSeats = config.maxSeats || 6;
+    const numBots = maxSeats - 1;
+
     // Créer le moteur PokerEngine
     this.engine = new window.PokerEngine({
-      maxSeats: 6,
+      maxSeats: maxSeats,
       smallBlind: config.sb,
       bigBlind: config.bb,
       startingChips: config.buyIn,
@@ -1412,8 +1490,8 @@ class HikaPokerApp {
       avatar: profile.avatar || '👑'
     }, 0);
 
-    // Ajouter 5 bots locaux avec personnalités distinctes
-    const bots = window.getRandomBots(5);
+    // Ajouter les bots locaux avec personnalités distinctes
+    const bots = window.getRandomBots(numBots);
     bots.forEach((b, idx) => {
       this.engine.addPlayer({
         id: b.id,
@@ -1436,6 +1514,9 @@ class HikaPokerApp {
   }
 
   startTournamentGame(speedKey = null) {
+    if (window.playerControlsUI) {
+      window.playerControlsUI.setPushOrFoldMode(false);
+    }
     const speed = speedKey || this.selectedTourneySpeed || 'normal';
     const speedCfg = (window.TOURNAMENT_SPEEDS && window.TOURNAMENT_SPEEDS[speed]) || { startingChips: 3000, handsPerLevel: 4, name: 'Normal', icon: '⚖️' };
     const startingChips = speedCfg.startingChips;
@@ -1681,13 +1762,19 @@ class HikaPokerApp {
   // Calcul et affichage de la prédiction de chance de remporter le pot (Style Zynga Poker)
   updateHeroWinChance() {
     if (!this.engine || !this.humanId) {
-      if (window.tableUI) window.tableUI.clearHeroWinChance();
+      if (window.tableUI) {
+        window.tableUI.clearHeroWinChance();
+        window.tableUI.clearOddsHUD();
+      }
       return;
     }
 
     const p = this.engine.getPlayer(this.humanId);
     if (!p || p.folded || p.busted || !p.inHand || !p.hole || p.hole.length < 2) {
-      if (window.tableUI) window.tableUI.clearHeroWinChance();
+      if (window.tableUI) {
+        window.tableUI.clearHeroWinChance();
+        window.tableUI.clearOddsHUD();
+      }
       return;
     }
 
@@ -1697,7 +1784,10 @@ class HikaPokerApp {
     ).length;
 
     if (activeOpponents <= 0) {
-      if (window.tableUI) window.tableUI.renderHeroWinChance(100, 0, false);
+      if (window.tableUI) {
+        window.tableUI.renderHeroWinChance(100, 0, false);
+        window.tableUI.clearOddsHUD();
+      }
       return;
     }
 
@@ -1706,14 +1796,116 @@ class HikaPokerApp {
 
     try {
       if (window.PokerEngine && typeof window.PokerEngine.equity === 'function') {
-        const equity = window.PokerEngine.equity(hole, board, activeOpponents, 250);
+        const equity = window.PokerEngine.equity(hole, board, activeOpponents, 300);
         const winPct = Math.round(equity * 100);
         if (window.tableUI) {
           window.tableUI.renderHeroWinChance(winPct, activeOpponents, false);
         }
+
+        // Calcul des Outs & Cotes du Pot (HUD en direct) si Flop ou Turn
+        if (board.length >= 3 && board.length < 5 && window.tableUI) {
+          const parse = (c) => typeof c === 'number' ? c : window.PokerEngine.parseCard(c);
+          const known = new Set(hole.concat(board).map(parse));
+          const unseen = [];
+          for (let i = 0; i < 52; i++) {
+            if (!known.has(i)) unseen.push(i);
+          }
+
+          const curEval = window.PokerEngine.evaluate(hole.concat(board));
+          const curCat = (curEval.score >> 20) & 0xf;
+
+          // Détecter les cartes inconnues qui améliorent la catégorie de la main
+          let flushOuts = 0;
+          let straightOuts = 0;
+          let improvingOuts = 0;
+
+          unseen.forEach((c) => {
+            const sc = window.PokerEngine.evaluate(hole.concat(board).concat([c])).score;
+            const cat = (sc >> 20) & 0xf;
+            if (cat === 5 && curCat < 5) flushOuts++;
+            if (cat === 4 && curCat < 4) straightOuts++;
+            if (cat > curCat) improvingOuts++;
+          });
+
+          let drawLabel = 'Amélioration';
+          let outsCount = improvingOuts;
+          if (flushOuts >= 8 && straightOuts >= 6) {
+            drawLabel = 'Quinte Flush';
+            outsCount = flushOuts + straightOuts;
+          } else if (flushOuts >= 8) {
+            drawLabel = 'Tirage Couleur';
+            outsCount = flushOuts;
+          } else if (straightOuts >= 8) {
+            drawLabel = 'Tirage Quinte';
+            outsCount = straightOuts;
+          } else if (straightOuts >= 4) {
+            drawLabel = 'Quinte Ventrale';
+            outsCount = straightOuts;
+          } else if (improvingOuts > 0) {
+            drawLabel = curCat >= 1 ? 'Double / Brelan' : 'Paire Max';
+            outsCount = improvingOuts;
+          } else {
+            drawLabel = 'Main faite';
+            outsCount = 0;
+          }
+
+          // Cotes du pot et EV
+          const legal = this.engine.getLegalActions(this.humanId);
+          const callAmt = (legal && legal.canCall) ? legal.callAmount : 0;
+          const canCheck = legal && legal.canCheck;
+          const isCheckFree = canCheck && callAmt === 0;
+          const pot = this.engine.collected || 0;
+          const totalPot = pot + callAmt;
+          let potOddsPct = null;
+          let ratio = null;
+
+          if (callAmt > 0 && totalPot > 0) {
+            potOddsPct = Math.round((callAmt / totalPot) * 100);
+            ratio = (pot / callAmt).toFixed(1);
+          }
+
+          const isEvPositive = isCheckFree || (potOddsPct !== null && winPct >= potOddsPct);
+
+          window.tableUI.updateOddsHUD({
+            winPct,
+            outs: outsCount,
+            drawLabel,
+            potOddsPct,
+            ratio,
+            isEvPositive,
+            isCheckFree
+          });
+        } else if (board.length >= 5 && window.tableUI) {
+          // River : main complète
+          const legal = this.engine.getLegalActions(this.humanId);
+          const callAmt = (legal && legal.canCall) ? legal.callAmount : 0;
+          const canCheck = legal && legal.canCheck;
+          const isCheckFree = canCheck && callAmt === 0;
+          const pot = this.engine.collected || 0;
+          const totalPot = pot + callAmt;
+          let potOddsPct = null;
+          let ratio = null;
+          if (callAmt > 0 && totalPot > 0) {
+            potOddsPct = Math.round((callAmt / totalPot) * 100);
+            ratio = (pot / callAmt).toFixed(1);
+          }
+          const isEvPositive = isCheckFree || (potOddsPct !== null && winPct >= potOddsPct);
+
+          window.tableUI.updateOddsHUD({
+            winPct,
+            outs: 0,
+            drawLabel: 'River Finale',
+            potOddsPct,
+            ratio,
+            isEvPositive,
+            isCheckFree
+          });
+        } else if (window.tableUI) {
+          window.tableUI.clearOddsHUD();
+        }
       }
     } catch (err) {
-      console.warn('[App] Erreur calcul equity hero:', err);
+      console.warn('[App] Erreur calcul equity hero & cotes:', err);
     }
   }
 
@@ -1737,9 +1929,10 @@ class HikaPokerApp {
     this.nextHandRemaining = 0;
     this.updatePauseUI(false);
 
-    // Effacer le cercle de probabilités de victoire
+    // Effacer le cercle de probabilités de victoire et le HUD de cotes
     if (window.tableUI) {
       window.tableUI.clearHeroWinChance();
+      window.tableUI.clearOddsHUD();
     }
 
     // Si tournoi en cours, sauvegarder son état pour reprise ultérieure (sur mobile ou PC)
@@ -2014,6 +2207,22 @@ class HikaPokerApp {
         }
       }
 
+      // Répliques & Taunts BD des Bots lors des actions clés (relance, allin, fold)
+      if (e.playerId !== this.humanId && window.getBotTaunt && window.tableUI) {
+        const bot = this.engine.getPlayer(e.playerId);
+        if (bot && bot.isBot) {
+          let shouldTaunt = false;
+          if (actType === 'allin') shouldTaunt = true;
+          else if (['raise', 'bet'].includes(actType) && Math.random() < 0.55) shouldTaunt = true;
+          else if (actType === 'fold' && Math.random() < 0.35) shouldTaunt = true;
+
+          if (shouldTaunt) {
+            const taunt = window.getBotTaunt(bot.name, actType === 'bet' ? 'raise' : actType);
+            window.tableUI.showBotSpeechBubble(e.playerId, taunt);
+          }
+        }
+      }
+
       // Son dramatique All-In quand un adversaire fait tapis
       if (actType === 'allin' && e.playerId !== this.humanId && window.soundFX) {
         window.soundFX.playAllIn();
@@ -2099,6 +2308,10 @@ class HikaPokerApp {
     // Élimination d'un joueur
     this.engine.on('bust', (e) => {
       const p = this.engine.getPlayer(e.playerId);
+      if (e.playerId !== this.humanId && window.getBotTaunt && window.tableUI && p) {
+        const taunt = window.getBotTaunt(p.name, 'badbeat');
+        window.tableUI.showBotSpeechBubble(e.playerId, taunt);
+      }
       if (this.gameMode === 'tournament') {
         window.tournamentManager.onPlayerBust(e.playerId, p ? p.name : 'Bot');
         this.saveActiveTournamentState();
@@ -2284,6 +2497,17 @@ class HikaPokerApp {
 
       window.tableUI.showWinnerBanner(winnerName, handLabel, totalPot);
 
+      // Taunt de victoire du bot vainqueur
+      if (winners.length > 0 && winners[0].id !== this.humanId && window.getBotTaunt && window.tableUI) {
+        const bot = this.engine ? this.engine.getPlayer(winners[0].id) : null;
+        if (bot && bot.isBot) {
+          const taunt = window.getBotTaunt(bot.name, 'win');
+          setTimeout(() => {
+            window.tableUI.showBotSpeechBubble(winners[0].id, taunt);
+          }, 600);
+        }
+      }
+
       // Particules de feux d'artifice de jetons dorés si gros pot (> 50x Big Blind)
       const currentBB = (this.engine && this.engine.blinds && this.engine.blinds.bigBlind) || (this.currentTableConfig && this.currentTableConfig.bb) || 50;
       if (totalPot >= currentBB * 50 && window.HikaFireworks && typeof window.HikaFireworks.launch === 'function') {
@@ -2382,9 +2606,12 @@ class HikaPokerApp {
     // Mettre à jour l'affichage des sièges pour illuminer le joueur actif
     window.tableUI.renderSeats(state, this.humanId, this.winningCards);
 
-    // Calculer l'index du siège UI
+    // Calculer l'index du siège UI selon le nombre max de sièges (2, 4 ou 6)
+    const maxSeats = (this.engine.config && this.engine.config.maxSeats) || 6;
     const humanSeat = state.players.findIndex((p) => p && p.id === this.humanId);
-    const uiSeatIdx = humanSeat >= 0 ? (e.seat - humanSeat + 6) % 6 : e.seat;
+    const relSeat = humanSeat >= 0 ? (e.seat - humanSeat + maxSeats) % maxSeats : e.seat;
+    const seatMap = { 2: [0, 3], 4: [0, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] }[maxSeats] || [0, 1, 2, 3, 4, 5];
+    const uiSeatIdx = seatMap[relSeat] !== undefined ? seatMap[relSeat] : relSeat;
 
     if (isHuman) {
       // Tour du joueur humain
