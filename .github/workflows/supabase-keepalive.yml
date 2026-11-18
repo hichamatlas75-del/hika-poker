@@ -1,0 +1,25 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Exécution automatique tous les jours à 06h00 UTC pour éviter la mise en pause Supabase (7 jours d'inactivité)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Déclenchement manuel possible depuis l'onglet Actions GitHub
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database & API
+        run: |
+          echo "Envoi du ping de maintien d'activité vers Supabase (szvdtbzrjmikfnkmvlhf)..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            "https://szvdtbzrjmikfnkmvlhf.supabase.co/rest/v1/profiles?select=count" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6dmR0Ynpyam1pa2Zua212bGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzNDMyOTIsImV4cCI6MjEwOTkxOTI5Mn0.7gJDYwtk83pUUTQct7Ib_IQUTwHc5S-IoVJuoKENUJc" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6dmR0Ynpyam1pa2Zua212bGhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzNDMyOTIsImV4cCI6MjEwOTkxOTI5Mn0.7gJDYwtk83pUUTQct7Ib_IQUTwHc5S-IoVJuoKENUJc")
+          echo "Code réponse HTTP : $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Supabase est actif et opérationnel !"
+          else
+            echo "⚠️ Attention : Statut reçu $HTTP_STATUS"
+          fi
